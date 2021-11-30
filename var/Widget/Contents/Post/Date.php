@@ -1,5 +1,4 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * 按日期归档列表组件
  *
@@ -43,6 +42,7 @@ class Widget_Contents_Post_Date extends Typecho_Widget
      * @param mixed $request request对象
      * @param mixed $response response对象
      * @param mixed $params 参数列表
+     * @return void
      */
     public function __construct($request, $response, $params = NULL)
     {
@@ -69,7 +69,7 @@ class Widget_Contents_Post_Date extends Typecho_Widget
         $resource = $this->db->query($this->db->select('created')->from('table.contents')
         ->where('type = ?', 'post')
         ->where('table.contents.status = ?', 'publish')
-        ->where('table.contents.created < ?', $this->options->time)
+        ->where('table.contents.created < ?', $this->options->gmtTime)
         ->order('table.contents.created', Typecho_Db::SORT_DESC));
 
         $offset = $this->options->timezone - $this->options->serverTimezone;

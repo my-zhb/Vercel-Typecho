@@ -1,5 +1,4 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * 评论归档
  *
@@ -43,14 +42,14 @@ class Widget_Comments_Archive extends Widget_Abstract_Comments
      * @var array
      */
     private $_threadedComments = array();
-
+    
     /**
-     * _singleCommentOptions  
+     * 多级评论回调函数
      * 
-     * @var mixed
      * @access private
+     * @var mixed
      */
-    private $_singleCommentOptions = NULL;
+    private $_customThreadedCommentsCallback = false;
 
     /**
      * 构造函数,初始化组件
@@ -65,18 +64,23 @@ class Widget_Comments_Archive extends Widget_Abstract_Comments
     {
         parent::__construct($request, $response, $params);
         $this->parameter->setDefault('parentId=0&commentPage=0&commentsNum=0&allowComment=1');
+        
+        /** 初始化回调函数 */
+        if (function_exists('threadedComments')) {
+            $this->_customThreadedCommentsCallback = true;
+        }
     }
     
     /**
      * 评论回调函数
      * 
      * @access private
+     * @param string $singleCommentOptions 单个评论自定义选项
      * @return void
      */
-    private function threadedCommentsCallback()
+    private function threadedCommentsCallback($singleCommentOptions)
     {
-        $singleCommentOptions = $this->_singleCommentOptions;
-        if (function_exists('threadedComments')) {
+        if ($this->_customThreadedCommentsCallback) {
             return threadedComments($this, $singleCommentOptions);
         }
         
@@ -88,8 +92,10 @@ class Widget_Comments_Archive extends Widget_Abstract_Comments
                 $commentClass .= ' comment-by-user';
             }
         }
+        
+        $commentLevelClass = $this->levels > 0 ? ' comment-child' : ' comment-parent';
 ?>
-<li itemscope itemtype="http://schema.org/UserComments" id="<?php $this->theId(); ?>" class="comment-body<?php
+<li id="<?php $this->theId(); ?>" class="comment-body<?php
     if ($this->levels > 0) {
         echo ' comment-child';
         $this->levelsAlt(' comment-level-odd', ' comment-level-even');
@@ -99,29 +105,29 @@ class Widget_Comments_Archive extends Widget_Abstract_Comments
     $this->alt(' comment-odd', ' comment-even');
     echo $commentClass;
 ?>">
-    <div class="comment-author" itemprop="creator" itemscope itemtype="http://schema.org/Person">
-        <span itemprop="image"><?php $this->gravatar($singleCommentOptions->avatarSize, $singleCommentOptions->defaultAvatar); ?></span>
-        <cite class="fn" itemprop="name"><?php $singleCommentOptions->beforeAuthor();
+    <div class="comment-author">
+        <?php $this->gravatar($singleCommentOptions->avatarSize, $singleCommentOptions->defaultAvatar); ?>
+        <cite class="fn"><?php $singleCommentOptions->beforeAuthor();
         $this->author();
         $singleCommentOptions->afterAuthor(); ?></cite>
     </div>
     <div class="comment-meta">
-        <a href="<?php $this->permalink(); ?>"><time itemprop="commentTime" datetime="<?php $this->date('c'); ?>"><?php $singleCommentOptions->beforeDate();
+        <a href="<?php $this->permalink(); ?>"><?php $singleCommentOptions->beforeDate();
         $this->date($singleCommentOptions->dateFormat);
-        $singleCommentOptions->afterDate(); ?></time></a>
+        $singleCommentOptions->afterDate(); ?></a>
         <?php if ('waiting' == $this->status) { ?>
         <em class="comment-awaiting-moderation"><?php $singleCommentOptions->commentStatus(); ?></em>
         <?php } ?>
     </div>
-    <div class="comment-content" itemprop="commentText">
+    <div class="comment-content">
     <?php $this->content(); ?>
     </div>
     <div class="comment-reply">
         <?php $this->reply($singleCommentOptions->replyWord); ?>
     </div>
     <?php if ($this->children) { ?>
-    <div class="comment-children" itemprop="discusses">
-        <?php $this->threadedComments(); ?>
+    <div class="comment-children">
+        <?php $this->threadedComments($singleCommentOptions); ?>
     </div>
     <?php } ?>
 </li>
@@ -285,8 +291,6 @@ class Widget_Comments_Archive extends Widget_Abstract_Comments
             $this->row = current($this->stack);
             $this->length = count($this->stack);
         }
-        
-        reset($this->stack);
     }
 
     /**
@@ -309,7 +313,6 @@ class Widget_Comments_Archive extends Widget_Abstract_Comments
 
         /** 重载push函数,使用coid作为数组键值,便于索引 */
         $this->stack[$value['coid']] = $value;
-        $this->length ++;
         
         return $value;
     }
@@ -322,40 +325,24 @@ class Widget_Comments_Archive extends Widget_Abstract_Comments
      * @param string $next 下一页文字
      * @param int $splitPage 分割范围
      * @param string $splitWord 分割字符
-     * @param string $template 展现配置信息
      * @return void
      */
-    public function pageNav($prev = '&laquo;', $next = '&raquo;', $splitPage = 3, $splitWord = '...', $template = '')
+    public function pageNav($prev = '&laquo;', $next = '&raquo;', $splitPage = 3, $splitWord = '...')
     {
         if ($this->options->commentsPageBreak && $this->_total > $this->options->commentsPageSize) {
-            $default = array(
-                'wrapTag'       =>  'ol',
-                'wrapClass'     =>  'page-navigator'
-            );
-
-            if (is_string($template)) {
-                parse_str($template, $config);
-            } else {
-                $config = $template;
-            }
-
-            $template = array_merge($default, $config);
-
             $pageRow = $this->parameter->parentContent;
             $pageRow['permalink'] = $pageRow['pathinfo'];
 
             $query = Typecho_Router::url('comment_page', $pageRow, $this->options->index);
 
             /** 使用盒状分页 */
-            $nav = new Typecho_Widget_Helper_PageNavigator_Box($this->_total,
-                $this->_currentPage, $this->options->commentsPageSize, $query);
+            $nav = new Typecho_Widget_Helper_PageNavigator_Box($this->_total, $this->_currentPage, $this->options->commentsPageSize, $query);
             $nav->setPageHolder('commentPage');
             $nav->setAnchor('comments');
             
-            echo '<' . $template['wrapTag'] . (empty($template['wrapClass']) 
-                    ? '' : ' class="' . $template['wrapClass'] . '"') . '>';
-            $nav->render($prev, $next, $splitPage, $splitWord, $template);
-            echo '</' . $template['wrapTag'] . '>';
+            echo '<ol class="page-navigator">';
+            $nav->render($prev, $next, $splitPage, $splitWord);
+            echo '</ol>';
         }
     }
 
@@ -363,9 +350,12 @@ class Widget_Comments_Archive extends Widget_Abstract_Comments
      * 递归输出评论
      *
      * @access protected
+     * @param string $before 在子评论之前输出
+     * @param string $after 在子评论之后输出
+     * @param Typecho_Config $singleCommentOptions 单个评论自定义选项
      * @return void
      */
-    public function threadedComments()
+    public function threadedComments($singleCommentOptions = NULL)
     {
         $children = $this->children;
         if ($children) {
@@ -374,16 +364,16 @@ class Widget_Comments_Archive extends Widget_Abstract_Comments
             $this->sequence ++;
 
             //在子评论之前输出
-            echo $this->_singleCommentOptions->before;
+            echo $singleCommentOptions->before;
 
             foreach ($children as $child) {
                 $this->row = $child;
-                $this->threadedCommentsCallback();
+                $this->threadedCommentsCallback($singleCommentOptions);
                 $this->row = $tmp;
             }
 
             //在子评论之后输出
-            echo $this->_singleCommentOptions->after;
+            echo $singleCommentOptions->after;
 
             $this->sequence --;
         }
@@ -398,33 +388,30 @@ class Widget_Comments_Archive extends Widget_Abstract_Comments
      */
     public function listComments($singleCommentOptions = NULL)
     {
-        //初始化一些变量
-        $this->_singleCommentOptions = Typecho_Config::factory($singleCommentOptions);
-        $this->_singleCommentOptions->setDefault(array(
-            'before'        =>  '<ol class="comment-list">',
-            'after'         =>  '</ol>',
-            'beforeAuthor'  =>  '',
-            'afterAuthor'   =>  '',
-            'beforeDate'    =>  '',
-            'afterDate'     =>  '',
-            'dateFormat'    =>  $this->options->commentDateFormat,
-            'replyWord'     =>  _t('回复'),
-            'commentStatus' =>  _t('您的评论正等待审核!'),
-            'avatarSize'    =>  32,
-            'defaultAvatar' =>  NULL
-        ));
-        $this->pluginHandle()->trigger($plugged)->listComments($this->_singleCommentOptions, $this);
-
-        if (!$plugged) {
-            if ($this->have()) { 
-                echo $this->_singleCommentOptions->before;
+        if ($this->have()) {
+            //初始化一些变量
+            $parsedSingleCommentOptions = Typecho_Config::factory($singleCommentOptions);
+            $parsedSingleCommentOptions->setDefault(array(
+                'before'        =>  '<ol class="comment-list">',
+                'after'         =>  '</ol>',
+                'beforeAuthor'  =>  '',
+                'afterAuthor'   =>  '',
+                'beforeDate'    =>  '',
+                'afterDate'     =>  '',
+                'dateFormat'    =>  $this->options->commentDateFormat,
+                'replyWord'     =>  _t('回复'),
+                'commentStatus' =>  _t('您的评论正等待审核！'),
+                'avatarSize'    =>  32,
+                'defaultAvatar' =>  NULL
+            ));
+        
+            echo $parsedSingleCommentOptions->before;
             
-                while ($this->next()) {
-                    $this->threadedCommentsCallback();
-                }
-            
-                echo $this->_singleCommentOptions->after;
+            while ($this->next()) {
+                $this->threadedCommentsCallback($parsedSingleCommentOptions);
             }
+            
+            echo $parsedSingleCommentOptions->after;
         }
     }
     

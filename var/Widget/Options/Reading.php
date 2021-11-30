@@ -1,5 +1,4 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * 文章阅读设置
  *
@@ -30,16 +29,16 @@ class Widget_Options_Reading extends Widget_Options_Permalink
     public function form()
     {
         /** 构建表格 */
-        $form = new Typecho_Widget_Helper_Form($this->security->getIndex('/action/options-reading'),
-            Typecho_Widget_Helper_Form::POST_METHOD);
+        $form = new Typecho_Widget_Helper_Form(Typecho_Common::url('/action/options-reading', $this->options->index),
+        Typecho_Widget_Helper_Form::POST_METHOD);
 
         /** 文章日期格式 */
         $postDateFormat = new Typecho_Widget_Helper_Form_Element_Text('postDateFormat', NULL, $this->options->postDateFormat,
-        _t('文章日期格式'), _t('此格式用于指定显示在文章归档中的日期默认显示格式.') . '<br />'
-            . _t('在某些主题中这个格式可能不会生效, 因为主题作者可以自定义日期格式.') . '<br />'
-            . _t('请参考 <a href="http://www.php.net/manual/zh/function.date.php">PHP 日期格式写法</a>.'));
+        _t('文章日期格式'), _t('此格式用于指定显示在文章归档中的日期默认显示格式.<br />
+        在某些主题中这个格式可能不会生效, 因为主题作者可以自定义日期格式.<br />
+        请参考 <a href="http://www.php.net/manual/zh/function.date.php">PHP 日期格式写法</a>.'));
         $postDateFormat->input->setAttribute('class', 'w-40 mono');
-        $form->addInput($postDateFormat->addRule('xssCheck', _t('请不要在日期格式中使用特殊字符')));
+        $form->addInput($postDateFormat);
 
         //首页显示
         $frontPageParts = explode(':', $this->options->frontPage);
@@ -61,7 +60,7 @@ class Widget_Options_Reading extends Widget_Options_Permalink
         // 页面列表
         $pages = $this->db->fetchAll($this->db->select('cid', 'title')
         ->from('table.contents')->where('type = ?', 'page')
-        ->where('status = ?', 'publish')->where('created < ?', $this->options->time));
+        ->where('status = ?', 'publish')->where('created < ?', $this->options->gmtTime));
         
         if (!empty($pages)) {
             $pagesSelect = '<select name="frontPagePage" id="frontPage-frontPagePage">';
@@ -80,7 +79,7 @@ class Widget_Options_Reading extends Widget_Options_Permalink
         }
 
         // 自定义文件列表
-        $files = glob($this->options->themeFile($this->options->theme, '*.php'));
+        $files = glob(__TYPECHO_ROOT_DIR__ . '/' . __TYPECHO_THEME_DIR__ . '/' . $this->options->theme . '/*.php');
         $filesSelect = '';
 
         foreach ($files as $file) {
@@ -133,13 +132,13 @@ class Widget_Options_Reading extends Widget_Options_Permalink
 
         /** FEED全文输出 */
         $feedFullText = new Typecho_Widget_Helper_Form_Element_Radio('feedFullText', array('0' => _t('仅输出摘要'), '1' => _t('全文输出')),
-        $this->options->feedFullText, _t('聚合全文输出'), _t('如果你不希望在聚合中输出文章全文,请使用仅输出摘要选项.') . '<br />'
-            . _t('摘要的文字取决于你在文章中使用分隔符的位置.'));
+        $this->options->feedFullText, _t('聚合全文输出'), _t('如果你不希望在聚合中输出文章全文,请使用仅输出摘要选项.<br />
+        摘要的文字取决于你在文章中使用分隔符的位置.'));
         $form->addInput($feedFullText);
 
         /** 提交按钮 */
         $submit = new Typecho_Widget_Helper_Form_Element_Submit('submit', NULL, _t('保存设置'));
-        $submit->input->setAttribute('class', 'btn primary');
+        $submit->input->setAttribute('class', 'primary');
         $form->addItem($submit);
 
         return $form;
@@ -163,7 +162,7 @@ class Widget_Options_Reading extends Widget_Options_Permalink
         if ('page' == $settings['frontPage'] && isset($this->request->frontPagePage) &&
         $this->db->fetchRow($this->db->select('cid')
         ->from('table.contents')->where('type = ?', 'page')
-        ->where('status = ?', 'publish')->where('created < ?', $this->options->time)
+        ->where('status = ?', 'publish')->where('created < ?', $this->options->gmtTime)
         ->where('cid = ?', $pageId = intval($this->request->frontPagePage)))) {
 
             $settings['frontPage'] = 'page:' . $pageId;
@@ -191,8 +190,6 @@ class Widget_Options_Reading extends Widget_Options_Permalink
 
                 $settings['routingTable'] = serialize($routingTable);
             }
-        } else {
-            $settings['frontArchive'] = 0;
         }
 
         foreach ($settings as $name => $value) {
@@ -212,7 +209,6 @@ class Widget_Options_Reading extends Widget_Options_Permalink
     public function action()
     {
         $this->user->pass('administrator');
-        $this->security->protect();
         $this->on($this->request->isPost())->updateReadingSettings();
         $this->response->redirect($this->options->adminUrl);
     }

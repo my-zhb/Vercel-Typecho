@@ -1,5 +1,4 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * Typecho Blog Platform
  *
@@ -7,6 +6,9 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
  * @license    GNU General Public License 2.0
  * @version    $Id$
  */
+
+/** Typecho_Widget_Helper_PageNavigator */
+require_once 'Typecho/Widget/Helper/PageNavigator.php';
 
 /**
  * 经典分页样式

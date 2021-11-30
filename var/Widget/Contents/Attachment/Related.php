@@ -1,5 +1,4 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * 文章相关文件
  *
@@ -42,14 +41,10 @@ class Widget_Contents_Attachment_Related extends Widget_Abstract_Contents
         $select->where('table.contents.parent = ?', $this->parameter->parentId);
 
         /** 提交查询 */
-        $select->order('table.contents.created', Typecho_Db::SORT_ASC);
+        $select->order('table.contents.created', Typecho_Db::SORT_DESC);
 
         if ($this->parameter->limit > 0) {
             $select->limit($this->parameter->limit);
-        }
-
-        if ($this->parameter->offset > 0) {
-            $select->offset($this->parameter->offset);
         }
 
         $this->db->fetchAll($select, array($this, 'push'));

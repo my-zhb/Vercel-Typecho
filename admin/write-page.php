@@ -7,23 +7,18 @@ Typecho_Widget::widget('Widget_Contents_Page_Edit')->to($page);
 <div class="main">
     <div class="body container">
         <?php include 'page-title.php'; ?>
-        <div class="row typecho-page-main typecho-post-area" role="form">
-            <form action="<?php $security->index('/action/contents-page-edit'); ?>" method="post" name="write_page">
+        <div class="colgroup typecho-page-main typecho-post-area" role="form">
+            <form action="<?php $options->index('/action/contents-page-edit'); ?>" method="post" name="write_page">
                 <div class="col-mb-12 col-tb-9" role="main">
-                    <?php if ($page->draft): ?>
-                        <?php if ($page->draft['cid'] != $page->cid): ?>
-                            <?php $pageModifyDate = new Typecho_Date($page->draft['modified']); ?>
-                            <cite class="edit-draft-notice"><?php _e('当前正在编辑的是保存于%s的草稿, 你可以<a href="%s">删除它</a>', $pageModifyDate->word(),
-                                    $security->getIndex('/action/contents-page-edit?do=deleteDraft&cid=' . $page->cid)); ?></cite>
-                        <?php else: ?>
-                            <cite class="edit-draft-notice"><?php _e('当前正在编辑的是未发布的草稿'); ?></cite>
-                        <?php endif; ?>
-                        <input name="draft" type="hidden" value="<?php echo $page->draft['cid'] ?>" />
+                    <?php if ($page->draft && $page->draft['cid'] != $page->cid): ?>
+                    <?php $pageModifyDate = new Typecho_Date($page->draft['modified']); ?>
+                        <cite class="edit-draft-notice"><?php _e('当前正在编辑的是保存于%s的草稿, 你可以<a href="%s">删除它</a>', $pageModifyDate->word(), 
+                        Typecho_Common::url('/action/contents-page-edit?do=deleteDraft&cid=' . $page->cid, $options->index)); ?></cite>
                     <?php endif; ?>
 
                     <p class="title">
                         <label for="title" class="sr-only"><?php _e('标题'); ?></label>
-                        <input type="text" id="title" name="title" autocomplete="off" value="<?php $page->title(); ?>" placeholder="<?php _e('标题'); ?>" class="w-100 text title" />
+                        <input type="text" id="title" name="title" autocomplete="off" value="<?php echo htmlspecialchars($page->title); ?>" placeholder="<?php _e('标题'); ?>" class="w-100 text title" />
                     </p>
                     <?php $permalink = Typecho_Common::url($options->routingTable['page']['url'], $options->index);
                     list ($scheme, $permalink) = explode(':', $permalink, 2);
@@ -45,14 +40,10 @@ Typecho_Widget::widget('Widget_Contents_Page_Edit')->to($page);
                         
                     <?php include 'custom-fields.php'; ?>
                     <p class="submit clearfix">
-                        <span class="left">
-                            <button type="button" id="btn-cancel-preview" class="btn"><i class="i-caret-left"></i> <?php _e('取消预览'); ?></button>
-                        </span>
                         <span class="right">
                             <input type="hidden" name="cid" value="<?php $page->cid(); ?>" />
-                            <button type="button" id="btn-preview" class="btn"><i class="i-exlink"></i> <?php _e('预览页面'); ?></button>
-                            <button type="submit" name="do" value="save" id="btn-save" class="btn"><?php _e('保存草稿'); ?></button>
-                            <button type="submit" name="do" value="publish" class="btn primary" id="btn-submit"><?php _e('发布页面'); ?></button>
+                            <button type="submit" name="do" value="save" id="btn-save"><?php _e('保存草稿'); ?></button>
+                            <button type="submit" name="do" value="publish" class="primary" id="btn-submit"><?php _e('发布页面'); ?></button>
                             <?php if ($options->markdown && (!$page->have() || $page->isMarkdown)): ?>
                             <input type="hidden" name="markdown" value="1" />
                             <?php endif; ?>
@@ -94,10 +85,10 @@ Typecho_Widget::widget('Widget_Contents_Page_Edit')->to($page);
 
                         <?php Typecho_Plugin::factory('admin/write-page.php')->option($page); ?>
 
-                        <button type="button" id="advance-panel-btn" class="btn btn-xs"><?php _e('高级选项'); ?> <i class="i-caret-down"></i></button>
+                        <button type="button" id="advance-panel-btn" class="btn-xs"><?php _e('高级选项'); ?> <i class="i-caret-down"></i></button>
                         <div id="advance-panel">
                             <section class="typecho-post-option visibility-option">
-                                <label for="visibility" class="typecho-label"><?php _e('公开度'); ?></label>
+                                <label class="typecho-label"><?php _e('公开度'); ?></label>
                                 <p>
                                 <select id="visibility" name="visibility">
                                     <option value="publish"<?php if ($page->status == 'publish' || !$page->status): ?> selected<?php endif; ?>><?php _e('公开'); ?></option>
@@ -133,7 +124,7 @@ Typecho_Widget::widget('Widget_Contents_Page_Edit')->to($page);
                         <?php endif; ?>
                     </div><!-- end #tab-advance -->
 
-                    <div id="tab-files" class="tab-content hidden">
+                    <div id="tab-files" class="tab-content">
                         <?php include 'file-upload.php'; ?>
                     </div><!-- end #tab-files -->
                 </div>

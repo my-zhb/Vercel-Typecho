@@ -1,5 +1,4 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * 评论设置
  *
@@ -30,13 +29,13 @@ class Widget_Options_Discussion extends Widget_Abstract_Options implements Widge
     public function form()
     {
         /** 构建表格 */
-        $form = new Typecho_Widget_Helper_Form($this->security->getIndex('/action/options-discussion'),
+        $form = new Typecho_Widget_Helper_Form(Typecho_Common::url('/action/options-discussion', $this->options->index),
         Typecho_Widget_Helper_Form::POST_METHOD);
 
         /** 评论日期格式 */
         $commentDateFormat = new Typecho_Widget_Helper_Form_Element_Text('commentDateFormat', NULL, $this->options->commentDateFormat,
-        _t('评论日期格式'), _t('这是一个默认的格式,当你在模板中调用显示评论日期方法时, 如果没有指定日期格式, 将按照此格式输出.') . '<br />'
-            . _t('具体写法请参考 <a href="http://www.php.net/manual/zh/function.date.php">PHP 日期格式写法</a>.'));
+        _t('评论日期格式'), _t('这是一个默认的格式,当你在模板中调用显示评论日期方法时, 如果没有指定日期格式, 将按照此格式输出.<br />
+        具体写法请参考 <a href="http://www.php.net/manual/zh/function.date.php">PHP 日期格式写法</a>.'));
         $commentDateFormat->input->setAttribute('class', 'w-40 mono');
         $form->addInput($commentDateFormat);
 
@@ -48,15 +47,15 @@ class Widget_Options_Discussion extends Widget_Abstract_Options implements Widge
 
         $commentsShowOptions = array(
             'commentsShowCommentOnly'   =>  _t('仅显示评论, 不显示 Pingback 和 Trackback'),
-            'commentsMarkdown'      =>  _t('在评论中使用 Markdown 语法'),
+            'commentsMarkdown'      =>  _t('在评论中使用Markdown语法'),
             'commentsShowUrl'       =>  _t('评论者名称显示时自动加上其个人主页链接'),
             'commentsUrlNofollow'   =>  _t('对评论者个人主页链接使用 <a href="http://en.wikipedia.org/wiki/Nofollow">nofollow 属性</a>'),
             'commentsAvatar'        =>  _t('启用 <a href="http://gravatar.com">Gravatar</a> 头像服务, 最高显示评级为 %s 的头像',
             '</label><select id="commentsShow-commentsAvatarRating" name="commentsAvatarRating">
-            <option value="G"' . ('G' == $this->options->commentsAvatarRating ? ' selected="true"' : '') . '>' . _t('G - 普通') .'</option>
-            <option value="PG"' . ('PG' == $this->options->commentsAvatarRating ? ' selected="true"' : '') . '>' . _t('PG - 13岁以上') .'</option>
-            <option value="R"' . ('R' == $this->options->commentsAvatarRating ? ' selected="true"' : '') . '>' . _t('R - 17岁以上成人') .'</option>
-            <option value="X"' . ('X' == $this->options->commentsAvatarRating ? ' selected="true"' : '') . '>' . _t('X - 限制级') .'</option></select>
+            <option value="G"' . ('G' == $this->options->commentsAvatarRating ? ' selected="true"' : '') . '>G - 普通</option>
+            <option value="PG"' . ('PG' == $this->options->commentsAvatarRating ? ' selected="true"' : '') . '>PG - 13岁以上</option>
+            <option value="R"' . ('R' == $this->options->commentsAvatarRating ? ' selected="true"' : '') . '>R - 17岁以上成人</option>
+            <option value="X"' . ('X' == $this->options->commentsAvatarRating ? ' selected="true"' : '') . '>X - 限制级</option></select>
             <label for="commentsShow-commentsAvatarRating">'),
             'commentsPageBreak'     =>  _t('启用分页, 并且每页显示 %s 篇评论, 在列出时将 %s 作为默认显示',
             '</label><input type="text" value="' . $this->options->commentsPageSize
@@ -113,7 +112,6 @@ class Widget_Options_Discussion extends Widget_Abstract_Options implements Widge
             'commentsRequireMail'           =>  _t('必须填写邮箱'),
             'commentsRequireURL'            =>  _t('必须填写网址'),
             'commentsCheckReferer'          =>  _t('检查评论来源页 URL 是否与文章链接一致'),
-            'commentsAntiSpam'              =>  _t('开启反垃圾保护'),
             'commentsAutoClose'             =>  _t('在文章发布 %s 天以后自动关闭评论',
             '</label><input name="commentsPostTimeout" type="text" class="text num text-s" value="' . intval($this->options->commentsPostTimeout / (24 * 3600)) . '" id="commentsPost-commentsPostTimeout" />
             <label for="commentsPost-commentsPostTimeout">'),
@@ -143,10 +141,6 @@ class Widget_Options_Discussion extends Widget_Abstract_Options implements Widge
             $commentsPostOptionsValue[] = 'commentsCheckReferer';
         }
 
-        if ($this->options->commentsAntiSpam) {
-            $commentsPostOptionsValue[] = 'commentsAntiSpam';
-        }
-
         if ($this->options->commentsAutoClose) {
             $commentsPostOptionsValue[] = 'commentsAutoClose';
         }
@@ -161,15 +155,15 @@ class Widget_Options_Discussion extends Widget_Abstract_Options implements Widge
 
         /** 允许使用的HTML标签和属性 */
         $commentsHTMLTagAllowed = new Typecho_Widget_Helper_Form_Element_Textarea('commentsHTMLTagAllowed', NULL,
-        $this->options->commentsHTMLTagAllowed,
-        _t('允许使用的HTML标签和属性'), _t('默认的用户评论不允许填写任何的HTML标签, 你可以在这里填写允许使用的HTML标签.') . '<br />'
-            . _t('比如: %s', '<code>&lt;a href=&quot;&quot;&gt; &lt;img src=&quot;&quot;&gt; &lt;blockquote&gt;</code>'));
+        htmlspecialchars($this->options->commentsHTMLTagAllowed),
+        _t('允许使用的HTML标签和属性'), _t('默认的用户评论不允许填写任何的HTML标签, 你可以在这里填写允许使用的HTML标签.<br />
+        比如: <code>&lt;a href=&quot;&quot;&gt; &lt;img src=&quot;&quot;&gt; &lt;blockquote&gt;</code>'));
         $commentsHTMLTagAllowed->input->setAttribute('class', 'mono');
         $form->addInput($commentsHTMLTagAllowed);
 
         /** 提交按钮 */
         $submit = new Typecho_Widget_Helper_Form_Element_Submit('submit', NULL, _t('保存设置'));
-        $submit->input->setAttribute('class', 'btn primary');
+        $submit->input->setAttribute('class', 'primary');
         $form->addItem($submit);
 
         return $form;
@@ -188,11 +182,9 @@ class Widget_Options_Discussion extends Widget_Abstract_Options implements Widge
             $this->response->goBack();
         }
 
-        $settings = $this->request->from('commentDateFormat', 'commentsListSize', 'commentsPageSize', 'commentsPageDisplay', 'commentsAvatar',
+        $settings = $this->request->from('commentDateFormat', 'commentsListSize', 'commentsShow', 'commentsPost', 'commentsPageSize', 'commentsPageDisplay', 'commentsAvatar',
                 'commentsOrder', 'commentsMaxNestingLevels', 'commentsUrlNofollow', 'commentsPostTimeout', 'commentsUniqueIpInterval', 'commentsWhitelist', 'commentsRequireMail', 'commentsAvatarRating',
                 'commentsPostTimeout', 'commentsPostInterval', 'commentsRequireModeration', 'commentsRequireURL', 'commentsHTMLTagAllowed', 'commentsStopWords', 'commentsIpBlackList');
-        $settings['commentsShow'] = $this->request->getArray('commentsShow');
-        $settings['commentsPost'] = $this->request->getArray('commentsPost');
 
         $settings['commentsShowCommentOnly'] = $this->isEnableByCheckbox($settings['commentsShow'], 'commentsShowCommentOnly');
         $settings['commentsMarkdown'] = $this->isEnableByCheckbox($settings['commentsShow'], 'commentsMarkdown');
@@ -203,7 +195,7 @@ class Widget_Options_Discussion extends Widget_Abstract_Options implements Widge
         $settings['commentsThreaded'] = $this->isEnableByCheckbox($settings['commentsShow'], 'commentsThreaded');
 
         $settings['commentsPageSize'] = intval($settings['commentsPageSize']);
-        $settings['commentsMaxNestingLevels'] = min(7, max(2, intval($settings['commentsMaxNestingLevels'])));
+        $settings['commentsMaxNestingLevels'] = max(2, intval($settings['commentsMaxNestingLevels']));
         $settings['commentsPageDisplay'] = ('first' == $settings['commentsPageDisplay']) ? 'first' : 'last';
         $settings['commentsOrder'] = ('DESC' == $settings['commentsOrder']) ? 'DESC' : 'ASC';
         $settings['commentsAvatarRating'] = in_array($settings['commentsAvatarRating'], array('G', 'PG', 'R', 'X'))
@@ -214,7 +206,6 @@ class Widget_Options_Discussion extends Widget_Abstract_Options implements Widge
         $settings['commentsRequireMail'] = $this->isEnableByCheckbox($settings['commentsPost'], 'commentsRequireMail');
         $settings['commentsRequireURL'] = $this->isEnableByCheckbox($settings['commentsPost'], 'commentsRequireURL');
         $settings['commentsCheckReferer'] = $this->isEnableByCheckbox($settings['commentsPost'], 'commentsCheckReferer');
-        $settings['commentsAntiSpam'] = $this->isEnableByCheckbox($settings['commentsPost'], 'commentsAntiSpam');
         $settings['commentsAutoClose'] = $this->isEnableByCheckbox($settings['commentsPost'], 'commentsAutoClose');
         $settings['commentsPostIntervalEnable'] = $this->isEnableByCheckbox($settings['commentsPost'], 'commentsPostIntervalEnable');
 
@@ -241,7 +232,6 @@ class Widget_Options_Discussion extends Widget_Abstract_Options implements Widge
     public function action()
     {
         $this->user->pass('administrator');
-        $this->security->protect();
         $this->on($this->request->isPost())->updateDiscussionSettings();
         $this->response->redirect($this->options->adminUrl);
     }

@@ -22,59 +22,6 @@ class Helper
     }
 
     /**
-     * 获取Widget_Security对象
-     *
-     * @return Widget_Security
-     */
-    public static function security()
-    {
-        return Typecho_Widget::widget('Widget_Security');
-    }
-
-    /**
-     * 根据ID获取单个Widget对象
-     *
-     * @param string $table 表名, 支持 contents, comments, metas, users
-     * @return Widget_Abstract
-     */
-    public static function widgetById($table, $pkId)
-    {
-        $table = ucfirst($table);
-        if (!in_array($table, array('Contents', 'Comments', 'Metas', 'Users'))) {
-            return NULL;
-        }
-
-        $keys = array(
-            'Contents'  =>  'cid',
-            'Comments'  =>  'coid',
-            'Metas'     =>  'mid',
-            'Users'     =>  'uid'
-        );
-
-        $className = "Widget_Abstract_{$table}";
-        $key = $keys[$table];
-        $db = Typecho_Db::get();
-        $widget = new $className(Typecho_Request::getInstance(), Typecho_Widget_Helper_Empty::getInstance());
-        
-        $db->fetchRow(
-            $widget->select()->where("{$key} = ?", $pkId)->limit(1),
-                array($widget, 'push'));
-
-        return $widget;
-    }
-
-    /**
-     * 请求异步服务
-     *
-     * @param $method
-     * @param $params
-     */
-    public static function requestService($method, $params)
-    {
-        Typecho_Widget::widget('Widget_Service')->requestService($method, $params);
-    }
-
-    /**
      * 强行删除某个插件
      *
      * @access public
@@ -148,7 +95,7 @@ class Helper
      * @param string $widget 组件名称
      * @param string $action 组件动作
      * @param string $after 在某个路由后面
-     * @return integer
+     * @return void
      */
     public static function addRoute($name, $url, $widget, $action = NULL, $after = NULL)
     {
@@ -226,8 +173,8 @@ class Helper
      * 删除action扩展
      *
      * @access public
-     * @param string $actionName
-     * @return Typecho_Widget
+     * @param unknown $actionName
+     * @return unknown
      */
     public static function removeAction($actionName)
     {
@@ -298,7 +245,7 @@ class Helper
      * @param string $subTitle 面板副标题
      * @param string $level 进入权限
      * @param boolean $hidden 是否隐藏
-     * @param string $addLink 新增项目链接, 会显示在页面标题之后
+     * @param boolean $addLink 新增项目链接, 会显示在页面标题之后
      * @return integer
      */
     public static function addPanel($index, $fileName, $title, $subTitle, $level, $hidden = false, $addLink = '')
@@ -359,8 +306,7 @@ class Helper
      * 获取面板url
      *
      * @access public
-     * @param string $fileName
-     * @return string
+     * @return unknown
      */
     public static function url($fileName)
     {
@@ -373,7 +319,7 @@ class Helper
      * @access public
      * @static
      * @param mixed $pluginName 插件名称
-     * @param array $settings 变量键值对
+     * @param mixed array $settings 变量键值对
      * @param bool $isPersonal. (default: false) 是否为私人变量
      * @return void
      */
@@ -413,10 +359,10 @@ class Helper
      * @param string $formId 表单id
      * @return void
      */
-    public static function cancelCommentReplyLink($word = 'Cancel', $formId = 'respond')
+    public static function cancleCommentReplyLink($word = 'Cancle', $formId = 'respond')
     {
         if (self::options()->commentsThreaded) {
-            echo '<a href="#' . $formId . '" rel="nofollow" onclick="return typechoCancelCommentReply(\'' .
+            echo '<a href="#' . $formId . '" rel="nofollow" onclick="return typechoCancleCommentReply(\'' .
             $formId . '\');">' . $word . '</a>';
         }
     }
@@ -462,7 +408,7 @@ var typechoAddCommentReply = function (cid, coid, cfid, style) {
     return false;
 };
 
-var typechoCancelCommentReply = function (cfid) {
+var typechoCancleCommentReply = function (cfid) {
     var _cf = document.getElementById(cfid),
     _cfh = document.getElementById('comment-form-place-holder');
 

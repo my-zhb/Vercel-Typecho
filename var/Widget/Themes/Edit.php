@@ -1,5 +1,4 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * 编辑风格
  *
@@ -27,12 +26,11 @@ class Widget_Themes_Edit extends Widget_Abstract_Options implements Widget_Inter
      * @access public
      * @param string $theme 外观名称
      * @return void
-     * @throws Typecho_Widget_Exception
      */
     public function changeTheme($theme)
     {
         $theme = trim($theme, './');
-        if (is_dir($this->options->themeFile($theme))) {
+        if (is_dir(__TYPECHO_ROOT_DIR__ . __TYPECHO_THEME_DIR__ . '/' . $theme)) {
             /** 删除原外观设置信息 */
             $this->delete($this->db->sql()->where('name = ?', 'theme:' . $this->options->theme));
 
@@ -43,7 +41,7 @@ class Widget_Themes_Edit extends Widget_Abstract_Options implements Widget_Inter
                 $this->update(array('value' => 'recent'), $this->db->sql()->where('name = ?', 'frontPage'));
             }
             
-            $configFile = $this->options->themeFile($theme, 'functions.php');
+            $configFile = __TYPECHO_ROOT_DIR__ . __TYPECHO_THEME_DIR__ . '/' . $theme . '/functions.php';
             
             if (file_exists($configFile)) {
                 require_once $configFile;
@@ -78,14 +76,12 @@ class Widget_Themes_Edit extends Widget_Abstract_Options implements Widget_Inter
      * @param string $theme 外观名称
      * @param string $file 文件名
      * @return void
-     * @throws Typecho_Widget_Exception
      */
     public function editThemeFile($theme, $file)
     {
-        $path = $this->options->themeFile($theme, $file);
+        $path = __TYPECHO_ROOT_DIR__ . __TYPECHO_THEME_DIR__ . '/' . trim($theme, './') . '/' . trim($file, './');
 
-        if (file_exists($path) && is_writeable($path) && !Typecho_Common::isAppEngine()
-            && (!defined('__TYPECHO_THEME_WRITEABLE__') || __TYPECHO_THEME_WRITEABLE__)) {
+        if (file_exists($path) && is_writeable($path)) {
             $handle = fopen($path, 'wb');
             if ($handle && fwrite($handle, $this->request->content)) {
                 fclose($handle);
@@ -145,6 +141,7 @@ class Widget_Themes_Edit extends Widget_Abstract_Options implements Widget_Inter
      * 用自有函数处理配置信息
      *
      * @access public
+     * @param string $pluginName 插件名称
      * @param array $settings 配置值
      * @param boolean $isInit 是否为初始化
      * @return boolean
@@ -169,10 +166,8 @@ class Widget_Themes_Edit extends Widget_Abstract_Options implements Widget_Inter
     {
         /** 需要管理员权限 */
         $this->user->pass('administrator');
-        $this->security->protect();
-        $this->on($this->request->is('change'))->changeTheme($this->request->filter('slug')->change);
-        $this->on($this->request->is('edit&theme'))
-            ->editThemeFile($this->request->filter('slug')->theme, $this->request->edit);
+        $this->on($this->request->is('change'))->changeTheme($this->request->change);
+        $this->on($this->request->is('edit&theme'))->editThemeFile($this->request->theme, $this->request->edit);
         $this->on($this->request->is('config'))->config($this->options->theme);
         $this->response->redirect($this->options->adminUrl);
     }

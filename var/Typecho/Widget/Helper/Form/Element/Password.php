@@ -1,5 +1,4 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * 密码输入表单项帮手
  *
@@ -9,6 +8,9 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
  * @license GNU General Public License 2.0
  * @version $Id$
  */
+
+/** Typecho_Widget_Helper_Form_Element */
+require_once 'Typecho/Widget/Helper/Form/Element.php';
 
 /**
  * 密码输入表单项帮手类
@@ -47,6 +49,6 @@ class Typecho_Widget_Helper_Form_Element_Password extends Typecho_Widget_Helper_
      */
     protected function _value($value)
     {
-        $this->input->setAttribute('value', htmlspecialchars($value));
+        $this->input->setAttribute('value', $value);
     }
 }

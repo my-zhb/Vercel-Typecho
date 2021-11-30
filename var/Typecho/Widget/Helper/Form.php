@@ -1,5 +1,4 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * 表单处理帮手
  *
@@ -9,6 +8,12 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
  * @license GNU General Public License 2.0
  * @version $Id$
  */
+
+/** Typecho_Widget_Helper_Layout */
+require_once 'Typecho/Widget/Helper/Layout.php';
+
+/** Typecho_Validate */
+require_once 'Typecho/Validate.php';
 
 /**
  * 表单处理帮手
@@ -47,6 +52,7 @@ class Typecho_Widget_Helper_Form extends Typecho_Widget_Helper_Layout
      * 构造函数,设置基本属性
      *
      * @access public
+     * @return void
      */
     public function __construct($action = NULL, $method = self::GET_METHOD, $enctype = self::STANDARD_ENCODE)
     {
@@ -79,13 +85,31 @@ class Typecho_Widget_Helper_Form extends Typecho_Widget_Helper_Layout
      * 增加输入元素
      *
      * @access public
-     * @param Typecho_Widget_Helper_Form_Element $input 输入元素
+     * @param Typecho_Widget_Helper_Form_Abstract $input 输入元素
      * @return Typecho_Widget_Helper_Form
      */
     public function addInput(Typecho_Widget_Helper_Form_Element $input)
     {
         $this->_inputs[$input->name] = $input;
         $this->addItem($input);
+        return $this;
+    }
+
+    /**
+     * 增加元素(重载)
+     *
+     * @access public
+     * @param Typecho_Widget_Helper_Layout $item 表单元素
+     * @return Typecho_Widget_Helper_Layout
+     */
+    public function addItem(Typecho_Widget_Helper_Layout $item)
+    {
+        if ($item instanceof Typecho_Widget_Helper_Form_Submit) {
+            $this->addItem($item);
+        } else {
+            parent::addItem($item);
+        }
+
         return $this;
     }
 
@@ -194,7 +218,7 @@ class Typecho_Widget_Helper_Form extends Typecho_Widget_Helper_Layout
      * 验证表单
      *
      * @access public
-     * @return mixed
+     * @return void
      */
     public function validate()
     {
@@ -213,10 +237,10 @@ class Typecho_Widget_Helper_Form extends Typecho_Widget_Helper_Layout
 
         if ($error) {
             /** 利用session记录错误 */
-            Typecho_Cookie::set('__typecho_form_message_' . $id, Json::encode($error));
+            $_SESSION['__typecho_form_message_' . $id] = $error;
 
             /** 利用session记录表单值 */
-            Typecho_Cookie::set('__typecho_form_record_' . $id, Json::encode($formData));
+            $_SESSION['__typecho_form_record_' . $id] = $formData;
         }
 
         return $error;
@@ -231,13 +255,11 @@ class Typecho_Widget_Helper_Form extends Typecho_Widget_Helper_Layout
     public function render()
     {
         $id = md5(implode('"', array_keys($this->_inputs)));
-        $record = Typecho_Cookie::get('__typecho_form_record_' . $id);
-        $message = Typecho_Cookie::get('__typecho_form_message_' . $id);
 
         /** 恢复表单值 */
-        if (!empty($record)) {
-            $record = Json::decode($record, true);
-            $message = Json::decode($message, true);
+        if (isset($_SESSION['__typecho_form_record_' . $id])) {
+            $record = $_SESSION['__typecho_form_record_' . $id];
+            $message = $_SESSION['__typecho_form_message_' . $id];
             foreach ($this->_inputs as $name => $input) {
                 $input->value(isset($record[$name]) ? $record[$name] : $input->value);
 
@@ -247,10 +269,10 @@ class Typecho_Widget_Helper_Form extends Typecho_Widget_Helper_Layout
                 }
             }
 
-            Typecho_Cookie::delete('__typecho_form_record_' . $id);
+            unset($_SESSION['__typecho_form_record_' . $id]);
         }
 
         parent::render();
-        Typecho_Cookie::delete('__typecho_form_message_' . $id);
+        unset($_SESSION['__typecho_form_message_' . $id]);
     }
 }

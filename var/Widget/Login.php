@@ -1,5 +1,4 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * 登录动作
  *
@@ -28,9 +27,6 @@ class Widget_Login extends Widget_Abstract_Users implements Widget_Interface_Do
      */
     public function action()
     {
-        // protect
-        $this->security->protect();
-
         /** 如果已经登录 */
         if ($this->user->hasLogin()) {
             /** 直接返回 */
@@ -53,7 +49,7 @@ class Widget_Login extends Widget_Abstract_Users implements Widget_Interface_Do
 
         /** 开始验证用户 **/
         $valid = $this->user->login($this->request->name, $this->request->password,
-        false, 1 == $this->request->remember ? $this->options->time + $this->options->timezone + 30*24*3600 : 0);
+        false, 1 == $this->request->remember ? $this->options->gmtTime + $this->options->timezone + 30*24*3600 : 0);
 
         /** 比对密码 */
         if (!$valid) {
@@ -76,7 +72,7 @@ class Widget_Login extends Widget_Abstract_Users implements Widget_Interface_Do
             $this->response->redirect($this->request->referer);
         } else if (!$this->user->pass('contributor', true)) {
             /** 不允许普通用户直接跳转后台 */
-            $this->response->redirect($this->options->profileUrl);
+            $this->response->redirect($this->options->siteUrl);
         } else {
             $this->response->redirect($this->options->adminUrl);
         }

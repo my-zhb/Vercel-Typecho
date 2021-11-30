@@ -1,5 +1,4 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * Typecho Blog Platform
  *
@@ -36,6 +35,7 @@ class Widget_Do extends Typecho_Widget
         'contents-attachment-edit'  =>  'Widget_Contents_Attachment_Edit',
         'metas-category-edit'       =>  'Widget_Metas_Category_Edit',
         'metas-tag-edit'            =>  'Widget_Metas_Tag_Edit',
+        'metas-tag-edit'            =>  'Widget_Metas_Tag_Edit',
         'options-discussion'        =>  'Widget_Options_Discussion',
         'options-general'           =>  'Widget_Options_General',
         'options-permalink'         =>  'Widget_Options_Permalink',
@@ -43,8 +43,7 @@ class Widget_Do extends Typecho_Widget
         'plugins-edit'              =>  'Widget_Plugins_Edit',
         'themes-edit'               =>  'Widget_Themes_Edit',
         'users-edit'                =>  'Widget_Users_Edit',
-        'users-profile'             =>  'Widget_Users_Profile',
-        'backup'                    =>  'Widget_Backup'
+        'users-profile'             =>  'Widget_Users_Profile'
     );
 
     /**
@@ -52,7 +51,6 @@ class Widget_Do extends Typecho_Widget
      *
      * @access public
      * @return void
-     * @throws Typecho_Widget_Exception
      */
     public function execute()
     {
@@ -64,7 +62,7 @@ class Widget_Do extends Typecho_Widget
             $widget = trim($this->request->widget, '/');
             $objectName = 'Widget_' . str_replace('/', '_', $widget);
 
-            if (preg_match("/^[_a-z0-9]$/i", $objectName) && Typecho_Common::isAvailableClass($objectName)) {
+            if (Typecho_Common::isAvailableClass($objectName)) {
                 $widgetName = $objectName;
             }
         } else {

@@ -1,5 +1,4 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * Typecho Blog Platform
  *
@@ -28,42 +27,6 @@ class Widget_Plugins_List extends Typecho_Widget
     public $activatedPlugins = array();
 
     /**
-     * @return array
-     */
-    protected function getPlugins()
-    {
-        return glob(__TYPECHO_ROOT_DIR__ . '/' . __TYPECHO_PLUGIN_DIR__ . '/*');
-    }
-
-    /**
-     * @param string $plugin
-     * @param string $index
-     * @return array|null
-     */
-    protected function getPlugin($plugin, $index)
-    {
-        if (is_dir($plugin)) {
-            /** 获取插件名称 */
-            $pluginName = basename($plugin);
-
-            /** 获取插件主文件 */
-            $pluginFileName = $plugin . '/Plugin.php';
-        } else if (file_exists($plugin) && 'index.php' != basename($plugin)) {
-            $pluginFileName = $plugin;
-            $part = explode('.', basename($plugin));
-            if (2 == count($part) && 'php' == $part[1]) {
-                $pluginName = $part[0];
-            } else {
-                return NULL;
-            }
-        } else {
-            return NULL;
-        }
-
-        return array($pluginName, $pluginFileName);
-    }
-
-    /**
      * 执行函数
      *
      * @access public
@@ -72,7 +35,7 @@ class Widget_Plugins_List extends Typecho_Widget
     public function execute()
     {
         /** 列出插件目录 */
-        $pluginDirs = $this->getPlugins();
+        $pluginDirs = glob(__TYPECHO_ROOT_DIR__ . '/' . __TYPECHO_PLUGIN_DIR__ . '/*');
         $this->parameter->setDefault(array('activated' => NULL));
 
         /** 获取已启用插件 */
@@ -80,13 +43,24 @@ class Widget_Plugins_List extends Typecho_Widget
         $this->activatedPlugins = $plugins['activated'];
 
         if (!empty($pluginDirs)) {
-            foreach ($pluginDirs as $key => $pluginDir) {
-                $parts = $this->getPlugin($pluginDir, $key);
-                if (empty($parts)) {
+            foreach ($pluginDirs as $pluginDir) {
+                if (is_dir($pluginDir)) {
+                    /** 获取插件名称 */
+                    $pluginName = basename($pluginDir);
+
+                    /** 获取插件主文件 */
+                    $pluginFileName = $pluginDir . '/Plugin.php';
+                } else if (file_exists($pluginDir) && 'index.php' != basename($pluginDir)) {
+                    $pluginFileName = $pluginDir;
+                    $part = explode('.', basename($pluginDir));
+                    if (2 == count($part) && 'php' == $part[1]) {
+                        $pluginName = $part[0];
+                    } else {
+                        continue;
+                    }
+                } else {
                     continue;
                 }
-
-                list ($pluginName, $pluginFileName) = $parts;
 
                 if (file_exists($pluginFileName)) {
                     $info = Typecho_Plugin::parseInfo($pluginFileName);
@@ -106,7 +80,7 @@ class Widget_Plugins_List extends Typecho_Widget
                         }
                     }
 
-                    if ($info['activated']  == $this->parameter->activated) {
+                    if (!is_bool($this->parameter->activated) || $info['activated']  == $this->parameter->activated) {
                         $this->push($info);
                     }
                 }

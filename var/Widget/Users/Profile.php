@@ -1,5 +1,4 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * 编辑用户
  *
@@ -42,12 +41,12 @@ class Widget_Users_Profile extends Widget_Users_Edit implements Widget_Interface
     public function profileForm()
     {
         /** 构建表格 */
-        $form = new Typecho_Widget_Helper_Form($this->security->getIndex('/action/users-profile'),
+        $form = new Typecho_Widget_Helper_Form(Typecho_Common::url('/action/users-profile', $this->options->index),
         Typecho_Widget_Helper_Form::POST_METHOD);
 
         /** 用户昵称 */
-        $screenName = new Typecho_Widget_Helper_Form_Element_Text('screenName', NULL, NULL, _t('昵称'), _t('用户昵称可以与用户名不同, 用于前台显示.')
-            . '<br />' . _t('如果你将此项留空, 将默认使用用户名.'));
+        $screenName = new Typecho_Widget_Helper_Form_Element_Text('screenName', NULL, NULL, _t('昵称'), _t('用户昵称可以与用户名不同, 用于前台显示.<br />
+        如果你将此项留空, 将默认使用用户名.'));
         $form->addInput($screenName);
 
         /** 个人主页地址 */
@@ -55,8 +54,8 @@ class Widget_Users_Profile extends Widget_Users_Edit implements Widget_Interface
         $form->addInput($url);
 
         /** 电子邮箱地址 */
-        $mail = new Typecho_Widget_Helper_Form_Element_Text('mail', NULL, NULL, _t('电子邮箱地址 *'), _t('电子邮箱地址将作为此用户的主要联系方式.')
-            . '<br />' . _t('请不要与系统中现有的电子邮箱地址重复.'));
+        $mail = new Typecho_Widget_Helper_Form_Element_Text('mail', NULL, NULL, _t('电子邮箱地址 *'), _t('电子邮箱地址将作为此用户的主要联系方式.<br />
+        请不要与系统中现有的电子邮箱地址重复.'));
         $form->addInput($mail);
 
         /** 用户动作 */
@@ -65,7 +64,7 @@ class Widget_Users_Profile extends Widget_Users_Edit implements Widget_Interface
 
         /** 提交按钮 */
         $submit = new Typecho_Widget_Helper_Form_Element_Submit('submit', NULL, _t('更新我的档案'));
-        $submit->input->setAttribute('class', 'btn primary');
+        $submit->input->setAttribute('class', 'primary');
         $form->addItem($submit);
 
         $screenName->value($this->user->screenName);
@@ -74,7 +73,6 @@ class Widget_Users_Profile extends Widget_Users_Edit implements Widget_Interface
 
         /** 给表单增加规则 */
         $screenName->addRule(array($this, 'screenNameExists'), _t('昵称已经存在'));
-        $screenName->addRule('xssCheck', _t('请不要在昵称中使用特殊字符'));
         $url->addRule('url', _t('个人主页地址格式错误'));
         $mail->addRule('required', _t('必须填写电子邮箱'));
         $mail->addRule(array($this, 'mailExists'), _t('电子邮箱地址已经存在'));
@@ -92,22 +90,16 @@ class Widget_Users_Profile extends Widget_Users_Edit implements Widget_Interface
     public function optionsForm()
     {
         /** 构建表格 */
-        $form = new Typecho_Widget_Helper_Form($this->security->getIndex('/action/users-profile'),
+        $form = new Typecho_Widget_Helper_Form(Typecho_Common::url('/action/users-profile', $this->options->index),
         Typecho_Widget_Helper_Form::POST_METHOD);
 
-        /** 撰写设置 */
+        /** 自动保存 */
         $markdown = new Typecho_Widget_Helper_Form_Element_Radio('markdown',
         array('0' => _t('关闭'), '1' => _t('打开')),
         $this->options->markdown, _t('使用 Markdown 语法编辑和解析内容'), 
-            _t('使用 <a href="http://daringfireball.net/projects/markdown/">Markdown</a> 语法能够使您的撰写过程更加简便直观.')
-                . '<br />' . _t('此功能开启不会影响以前没有使用 Markdown 语法编辑的内容.'));
+            _t('使用 <a href="http://daringfireball.net/projects/markdown/">Markdown</a> 语法能够使您的撰写过程更加简便直观.<br />
+此功能开启不会影响以前没有使用 Markdown 语法编辑的内容.'));
         $form->addInput($markdown);
-
-        $xmlrpcMarkdown = new Typecho_Widget_Helper_Form_Element_Radio('xmlrpcMarkdown',
-        array('0' => _t('关闭'), '1' => _t('打开')),
-        $this->options->xmlrpcMarkdown, _t('在 XMLRPC 接口中使用 Markdown 语法'), 
-            _t('对于完全支持 <a href="http://daringfireball.net/projects/markdown/">Markdown</a> 语法写作的离线编辑器, 打开此选项后将避免内容被转换为 HTML.'));
-        $form->addInput($xmlrpcMarkdown);
 
         /** 自动保存 */
         $autoSave = new Typecho_Widget_Helper_Form_Element_Radio('autoSave',
@@ -140,7 +132,7 @@ class Widget_Users_Profile extends Widget_Users_Edit implements Widget_Interface
 
         /** 提交按钮 */
         $submit = new Typecho_Widget_Helper_Form_Element_Submit('submit', NULL, _t('保存设置'));
-        $submit->input->setAttribute('class', 'btn primary');
+        $submit->input->setAttribute('class', 'primary');
         $form->addItem($submit);
 
         return $form;
@@ -159,7 +151,7 @@ class Widget_Users_Profile extends Widget_Users_Edit implements Widget_Interface
     public function personalForm($pluginName, $className, $pluginFileName, &$group)
     {
         /** 构建表格 */
-        $form = new Typecho_Widget_Helper_Form($this->security->getIndex('/action/users-profile'),
+        $form = new Typecho_Widget_Helper_Form(Typecho_Common::url('/action/users-profile', $this->options->index),
         Typecho_Widget_Helper_Form::POST_METHOD);
         $form->setAttribute('name', $pluginName);
         $form->setAttribute('id', $pluginName);
@@ -178,9 +170,7 @@ class Widget_Users_Profile extends Widget_Users_Edit implements Widget_Interface
 
         $form->addItem(new Typecho_Widget_Helper_Form_Element_Hidden('do', NULL, 'personal'));
         $form->addItem(new Typecho_Widget_Helper_Form_Element_Hidden('plugin', NULL, $pluginName));
-        $submit = new Typecho_Widget_Helper_Form_Element_Submit('submit', NULL, _t('保存设置'));
-        $submit->input->setAttribute('class', 'btn primary');
-        $form->addItem($submit);
+        $form->addItem(new Typecho_Widget_Helper_Form_Element_Submit(NULL, NULL, _t('保存设置')));
         return $form;
     }
 
@@ -192,20 +182,16 @@ class Widget_Users_Profile extends Widget_Users_Edit implements Widget_Interface
      */
     public function personalFormList()
     {
-        $this->widget('Widget_Plugins_List@personalPlugins', 'activated=1')->to($plugins);
+        $this->widget('Widget_Plugins_List_Activated')->to($plugins);
         while ($plugins->next()) {
             if ($plugins->personalConfig) {
+                echo '<h3>' . $plugins->title . '</h3>';
                 list($pluginFileName, $className) = Typecho_Plugin::portal($plugins->name,
-                    $this->options->pluginDir($plugins->name));
+                __TYPECHO_ROOT_DIR__ . '/' . __TYPECHO_PLUGIN_DIR__);
 
                 $form = $this->personalForm($plugins->name, $className, $pluginFileName, $group);
                 if ($this->user->pass($group, true)) {
-                    echo '<br><section id="personal-' . $plugins->name . '">';
-                    echo '<h3>' . $plugins->title . '</h3>';
-                    
                     $form->render();
-
-                    echo '</section>';
                 }
             }
         }
@@ -220,12 +206,12 @@ class Widget_Users_Profile extends Widget_Users_Edit implements Widget_Interface
     public function passwordForm()
     {
         /** 构建表格 */
-        $form = new Typecho_Widget_Helper_Form($this->security->getIndex('/action/users-profile'),
+        $form = new Typecho_Widget_Helper_Form(Typecho_Common::url('/action/users-profile', $this->options->index),
         Typecho_Widget_Helper_Form::POST_METHOD);
 
         /** 用户密码 */
-        $password = new Typecho_Widget_Helper_Form_Element_Password('password', NULL, NULL, _t('用户密码'), _t('为此用户分配一个密码.')
-            . '<br />' . _t('建议使用特殊字符与字母、数字的混编样式,以增加系统安全性.'));
+        $password = new Typecho_Widget_Helper_Form_Element_Password('password', NULL, NULL, _t('用户密码'), _t('为此用户分配一个密码.<br />
+        建议使用特殊字符与字母的混编样式,以增加系统安全性.'));
         $password->input->setAttribute('class', 'w-60');
         $form->addInput($password);
 
@@ -240,7 +226,7 @@ class Widget_Users_Profile extends Widget_Users_Edit implements Widget_Interface
 
         /** 提交按钮 */
         $submit = new Typecho_Widget_Helper_Form_Element_Submit('submit', NULL, _t('更新密码'));
-        $submit->input->setAttribute('class', 'btn primary');
+        $submit->input->setAttribute('class', 'primary');
         $form->addItem($submit);
 
         $password->addRule('required', _t('必须填写密码'));
@@ -289,12 +275,15 @@ class Widget_Users_Profile extends Widget_Users_Edit implements Widget_Interface
     {
         $settings['autoSave'] = $this->request->autoSave ? 1 : 0;
         $settings['markdown'] = $this->request->markdown ? 1 : 0;
-        $settings['xmlrpcMarkdown'] = $this->request->xmlrpcMarkdown ? 1 : 0;
-        $defaultAllow = $this->request->getArray('defaultAllow');
 
-        $settings['defaultAllowComment'] = in_array('comment', $defaultAllow) ? 1 : 0;
-        $settings['defaultAllowPing'] = in_array('ping', $defaultAllow) ? 1 : 0;
-        $settings['defaultAllowFeed'] = in_array('feed', $defaultAllow) ? 1 : 0;
+        $settings['defaultAllowComment'] = is_array($this->request->defaultAllow)
+        && in_array('comment', $this->request->defaultAllow) ? 1 : 0;
+
+        $settings['defaultAllowPing'] = is_array($this->request->defaultAllow)
+        && in_array('ping', $this->request->defaultAllow) ? 1 : 0;
+
+        $settings['defaultAllowFeed'] = is_array($this->request->defaultAllow)
+        && in_array('feed', $this->request->defaultAllow) ? 1 : 0;
 
         foreach ($settings as $name => $value) {
             if ($this->db->fetchObject($this->db->select(array('COUNT(*)' => 'num'))
@@ -327,8 +316,7 @@ class Widget_Users_Profile extends Widget_Users_Edit implements Widget_Interface
             $this->response->goBack();
         }
 
-        $hasher = new PasswordHash(8, true);
-        $password = $hasher->HashPassword($this->request->password);
+        $password = Typecho_Common::hash($this->request->password);
 
         /** 更新数据 */
         $this->update(array('password' => $password),
@@ -427,7 +415,6 @@ class Widget_Users_Profile extends Widget_Users_Edit implements Widget_Interface
      */
     public function action()
     {
-        $this->security->protect();
         $this->on($this->request->is('do=profile'))->updateProfile();
         $this->on($this->request->is('do=options'))->updateOptions();
         $this->on($this->request->is('do=password'))->updatePassword();

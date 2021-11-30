@@ -1,5 +1,4 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * Typecho Blog Platform
  *
@@ -7,6 +6,9 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
  * @license    GNU General Public License 2.0
  * @version    $Id$
  */
+
+/** 数据库适配器接口 */
+require_once 'Typecho/Db/Adapter.php';
 
 /**
  * 数据库Pgsql适配器
@@ -59,32 +61,8 @@ class Typecho_Db_Adapter_Pgsql implements Typecho_Db_Adapter
         }
 
         /** 数据库异常 */
+        require_once 'Typecho/Db/Adapter/Exception.php';
         throw new Typecho_Db_Adapter_Exception(@pg_last_error($this->_dbLink));
-    }
-
-    /**
-     * 获取数据库版本 
-     * 
-     * @param mixed $handle
-     * @return string
-     */
-    public function getVersion($handle)
-    {
-        $version = pg_version($handle);
-        return 'pgsql:pgsql ' . $version['server'];
-    }
-
-    /**
-     * 清空数据表
-     *
-     * @param string $table
-     * @param mixed $handle 连接对象
-     * @return mixed|void
-     * @throws Typecho_Db_Exception
-     */
-    public function truncate($table, $handle)
-    {
-        $this->query('TRUNCATE TABLE ' . $this->quoteColumn($table) . ' RESTART IDENTITY', $handle);
     }
 
     /**
@@ -94,18 +72,19 @@ class Typecho_Db_Adapter_Pgsql implements Typecho_Db_Adapter
      * @param mixed $handle 连接对象
      * @param integer $op 数据库读写状态
      * @param string $action 数据库动作
-     * @param string $table 数据表
      * @throws Typecho_Db_Exception
      * @return resource
      */
-    public function query($query, $handle, $op = Typecho_Db::READ, $action = NULL, $table = NULL)
+    public function query($query, $handle, $op = Typecho_Db::READ, $action = NULL)
     {
-        $this->_lastTable = $table;
-        if ($resource = @pg_query($handle, $query)) {
+        $isQueryObject = $query instanceof Typecho_Db_Query;
+        $this->_lastTable = $isQueryObject ? $query->getAttribute('table') : NULL;
+        if ($resource = @pg_query($handle, $isQueryObject ? $query->__toString() : $query)) {
             return $resource;
         }
 
         /** 数据库异常 */
+        require_once 'Typecho/Db/Query/Exception.php';
         throw new Typecho_Db_Query_Exception(@pg_last_error($this->_dbLink),
         pg_result_error_field(pg_get_result($this->_dbLink), PGSQL_DIAG_SQLSTATE));
     }
@@ -175,7 +154,7 @@ class Typecho_Db_Adapter_Pgsql implements Typecho_Db_Adapter
         $sql['offset'] = (0 == strlen($sql['offset'])) ? NULL : ' OFFSET ' . $sql['offset'];
 
         return 'SELECT ' . $sql['fields'] . ' FROM ' . $sql['table'] .
-        $sql['where'] . $sql['group'] . $sql['having'] . $sql['order'] . $sql['limit'] . $sql['offset'];
+        $sql['where'] . $sql['group'] . $sql['order'] . $sql['limit'] . $sql['offset'];
     }
 
     /**

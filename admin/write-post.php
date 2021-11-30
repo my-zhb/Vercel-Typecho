@@ -7,23 +7,18 @@ Typecho_Widget::widget('Widget_Contents_Post_Edit')->to($post);
 <div class="main">
     <div class="body container">
         <?php include 'page-title.php'; ?>
-        <div class="row typecho-page-main typecho-post-area" role="form">
-            <form action="<?php $security->index('/action/contents-post-edit'); ?>" method="post" name="write_post">
+        <div class="colgroup typecho-page-main typecho-post-area" role="form">
+            <form action="<?php $options->index('/action/contents-post-edit'); ?>" method="post" name="write_post">
                 <div class="col-mb-12 col-tb-9" role="main">
-                    <?php if ($post->draft): ?>
-                        <?php if ($post->draft['cid'] != $post->cid): ?>
-                            <?php $postModifyDate = new Typecho_Date($post->draft['modified']); ?>
-                            <cite class="edit-draft-notice"><?php _e('你正在编辑的是保存于 %s 的草稿, 你也可以 <a href="%s">删除它</a>', $postModifyDate->word(),
-                                    $security->getIndex('/action/contents-post-edit?do=deleteDraft&cid=' . $post->cid)); ?></cite>
-                        <?php else: ?>
-                            <cite class="edit-draft-notice"><?php _e('当前正在编辑的是未发布的草稿'); ?></cite>
-                        <?php endif; ?>
-                        <input name="draft" type="hidden" value="<?php echo $post->draft['cid'] ?>" />
+                    <?php if ($post->draft && $post->draft['cid'] != $post->cid): ?>
+                    <?php $postModifyDate = new Typecho_Date($post->draft['modified']); ?>
+                    <cite class="edit-draft-notice"><?php _e('你正在编辑的是保存于 %s 的草稿, 你也可以 <a href="%s">删除它</a>', $postModifyDate->word(), 
+                    Typecho_Common::url('/action/contents-post-edit?do=deleteDraft&cid=' . $post->cid, $options->index)); ?></cite>
                     <?php endif; ?>
 
                     <p class="title">
                         <label for="title" class="sr-only"><?php _e('标题'); ?></label>
-                        <input type="text" id="title" name="title" autocomplete="off" value="<?php $post->title(); ?>" placeholder="<?php _e('标题'); ?>" class="w-100 text title" />
+                        <input type="text" id="title" name="title" autocomplete="off" value="<?php echo htmlspecialchars($post->title); ?>" placeholder="<?php _e('标题'); ?>" class="w-100 text title" />
                     </p>
                     <?php $permalink = Typecho_Common::url($options->routingTable['post']['url'], $options->index);
                     list ($scheme, $permalink) = explode(':', $permalink, 2);
@@ -50,14 +45,10 @@ Typecho_Widget::widget('Widget_Contents_Post_Edit')->to($post);
                     <?php include 'custom-fields.php'; ?>
 
                     <p class="submit clearfix">
-                        <span class="left">
-                            <button type="button" id="btn-cancel-preview" class="btn"><i class="i-caret-left"></i> <?php _e('取消预览'); ?></button>
-                        </span>
                         <span class="right">
                             <input type="hidden" name="cid" value="<?php $post->cid(); ?>" />
-                            <button type="button" id="btn-preview" class="btn"><i class="i-exlink"></i> <?php _e('预览文章'); ?></button>
-                            <button type="submit" name="do" value="save" id="btn-save" class="btn"><?php _e('保存草稿'); ?></button>
-                            <button type="submit" name="do" value="publish" class="btn primary" id="btn-submit"><?php _e('发布文章'); ?></button>
+                            <button type="submit" name="do" value="save" id="btn-save"><?php _e('保存草稿'); ?></button>
+                            <button type="submit" name="do" value="publish" class="primary" id="btn-submit"><?php _e('发布文章'); ?></button>
                             <?php if ($options->markdown && (!$post->have() || $post->isMarkdown)): ?>
                             <input type="hidden" name="markdown" value="1" />
                             <?php endif; ?>
@@ -92,7 +83,7 @@ Typecho_Widget::widget('Widget_Contents_Post_Edit')->to($post);
                                 }
                                 ?>
                                 <?php while($category->next()): ?>
-                                <li><?php echo str_repeat('&nbsp;&nbsp;&nbsp;&nbsp;', $category->levels); ?><input type="checkbox" id="category-<?php $category->mid(); ?>" value="<?php $category->mid(); ?>" name="category[]" <?php if(in_array($category->mid, $categories)): ?>checked="true"<?php endif; ?>/>
+                                <li><input type="checkbox" id="category-<?php $category->mid(); ?>" value="<?php $category->mid(); ?>" name="category[]" <?php if(in_array($category->mid, $categories)): ?>checked="true"<?php endif; ?>/>
                                 <label for="category-<?php $category->mid(); ?>"><?php $category->name(); ?></label></li>
                                 <?php endwhile; ?>
                             </ul>
@@ -105,7 +96,7 @@ Typecho_Widget::widget('Widget_Contents_Post_Edit')->to($post);
 
                         <?php Typecho_Plugin::factory('admin/write-post.php')->option($post); ?>
 
-                        <button type="button" id="advance-panel-btn" class="btn btn-xs"><?php _e('高级选项'); ?> <i class="i-caret-down"></i></button>
+                        <button type="button" id="advance-panel-btn" class="btn-xs"><?php _e('高级选项'); ?> <i class="i-caret-down"></i></button>
                         <div id="advance-panel">
                             <?php if($user->pass('editor', true)): ?>
                             <section class="typecho-post-option visibility-option">
@@ -162,7 +153,7 @@ Typecho_Widget::widget('Widget_Contents_Post_Edit')->to($post);
                         <?php endif; ?>
                     </div><!-- end #tab-advance -->
 
-                    <div id="tab-files" class="tab-content hidden">
+                    <div id="tab-files" class="tab-content">
                         <?php include 'file-upload.php'; ?>
                     </div><!-- end #tab-files -->
                 </div>

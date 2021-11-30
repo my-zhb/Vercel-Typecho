@@ -7,6 +7,12 @@
  * @version    $Id: Db.php 107 2008-04-11 07:14:43Z magike.net $
  */
 
+/** 配置管理 */
+require_once 'Typecho/Config.php';
+
+/** sql构建器 */
+require_once 'Typecho/Db/Query.php';
+
 /**
  * 包含获取数据支持方法的类.
  * 必须定义__TYPECHO_DB_HOST__, __TYPECHO_DB_PORT__, __TYPECHO_DB_NAME__,
@@ -37,7 +43,7 @@ class Typecho_Db
     /** 表左连接方式 */
     const LEFT_JOIN = 'LEFT';
 
-    /** 表右连接方式 */
+    /** 表外连接方式 */
     const RIGHT_JOIN = 'RIGHT';
 
     /** 数据库查询操作 */
@@ -109,7 +115,7 @@ class Typecho_Db
      *
      * @param mixed $adapterName 适配器名称
      * @param string $prefix 前缀
-     * @throws Typecho_Db_Exception
+     * @return void
      */
     public function __construct($adapterName, $prefix = 'typecho_')
     {
@@ -117,6 +123,7 @@ class Typecho_Db
         $this->_adapterName = $adapterName;
 
         /** 数据库适配器 */
+        require_once 'Typecho/Db/Adapter/' . str_replace('_', '/', $adapterName) . '.php';
         $adapterName = 'Typecho_Db_Adapter_' . $adapterName;
 
         if (!call_user_func(array($adapterName, 'isAvailable'))) {
@@ -160,48 +167,11 @@ class Typecho_Db
      * getConfig  
      * 
      * @access public
-     * @return array
+     * @return void
      */
     public function getConfig()
     {
         return $this->_config;
-    }
-
-    /**
-     * 重置连接池
-     * 
-     * @return void
-     */
-    public function flushPool()
-    {
-        $this->_connectedPool = array();
-    }
-
-    /**
-     * 选择数据库
-     * 
-     * @param int $op 
-     * @return Typecho_Db_Adapter
-     * @throws Typecho_Db_Exception
-     */
-    public function selectDb($op)
-    {
-        if (!isset($this->_connectedPool[$op])) {
-            if (empty($this->_pool[$op])) {
-                /** Typecho_Db_Exception */
-                throw new Typecho_Db_Exception('Missing Database Connection');
-            }
-            
-            //获取相应读或写服务器连接池中的一个
-            $selectConnection = rand(0, count($this->_pool[$op]) - 1); 
-            //获取随机获得的连接池配置
-            $selectConnectionConfig = $this->_config[$this->_pool[$op][$selectConnection]];
-            $selectConnectionHandle = $this->_adapter->connect($selectConnectionConfig);
-            $this->_connectedPool[$op] = &$selectConnectionHandle;
-            
-        }
-
-        return $this->_connectedPool[$op];
     }
 
     /**
@@ -225,7 +195,7 @@ class Typecho_Db
     public function addServer($config, $op)
     {
         $this->_config[] = Typecho_Config::factory($config);
-        $key = count($this->_config) - 1;
+        $key = key($this->_config);
 
         /** 将连接放入池中 */
         switch ($op) {
@@ -238,17 +208,6 @@ class Typecho_Db
                 $this->_pool[self::WRITE][] = $key;
                 break;
         }
-    }
-
-    /**
-     * 获取版本
-     * 
-     * @param int $op 
-     * @return string
-     */
-    public function getVersion($op = self::READ)
-    {
-        return $this->_adapter->getVersion($this->selectDb($op));
     }
 
     /**
@@ -274,6 +233,7 @@ class Typecho_Db
     {
         if (empty(self::$_instance)) {
             /** Typecho_Db_Exception */
+            require_once 'Typecho/Db/Exception.php';
             throw new Typecho_Db_Exception('Missing Database Object');
         }
 
@@ -327,32 +287,18 @@ class Typecho_Db
     }
 
     /**
-     * @param $table
-     * @throws Typecho_Db_Exception
-     */
-    public function truncate($table)
-    {
-        $table = preg_replace("/^table\./", $this->_prefix, $table);
-        $this->_adapter->truncate($table, $this->selectDb(self::WRITE));
-    }
-
-    /**
      * 执行查询语句
      *
      * @param mixed $query 查询语句或者查询对象
-     * @param int $op 数据库读写状态
+     * @param boolean $op 数据库读写状态
      * @param string $action 操作动作
      * @return mixed
-     * @throws Typecho_Db_Exception
      */
     public function query($query, $op = self::READ, $action = self::SELECT)
     {
-        $table = NULL;
-
         /** 在适配器中执行查询 */
         if ($query instanceof Typecho_Db_Query) {
             $action = $query->getAttribute('action');
-            $table = $query->getAttribute('table');
             $op = (self::UPDATE == $action || self::DELETE == $action
             || self::INSERT == $action) ? self::WRITE : self::READ;
         } else if (!is_string($query)) {
@@ -361,11 +307,27 @@ class Typecho_Db
         }
 
         /** 选择连接池 */
-        $handle = $this->selectDb($op);
+        if (!isset($this->_connectedPool[$op])) {
+            if (empty($this->_pool[$op])) {
+                /** Typecho_Db_Exception */
+                require_once 'Typecho/Db/Exception.php';
+                throw new Typecho_Db_Exception('Missing Database Connection');
+            }
+
+            $selectConnection = rand(0, count($this->_pool[$op]) - 1);
+            $selectConnectionConfig = $this->_config[$selectConnection];
+            $selectConnectionHandle = $this->_adapter->connect($selectConnectionConfig);
+            $other = (self::READ == $op) ? self::WRITE : self::READ;
+
+            if (!empty($this->_pool[$other]) && in_array($selectConnection, $this->_pool[$other])) {
+                $this->_connectedPool[$other] = &$selectConnectionHandle;
+            }
+            $this->_connectedPool[$op] = &$selectConnectionHandle;
+        }
+        $handle = $this->_connectedPool[$op];
 
         /** 提交查询 */
-        $resource = $this->_adapter->query($query instanceof Typecho_Db_Query ?
-            $query->prepare($query) : $query, $handle, $op, $action, $table);
+        $resource = $this->_adapter->query($query, $handle, $op, $action);
 
         if ($action) {
             //根据查询动作返回相应资源
@@ -417,7 +379,7 @@ class Typecho_Db
      *
      * @param mixed $query 查询对象
      * @param array $filter 行过滤器函数,将查询的每一行作为第一个参数传入指定的过滤器中
-     * @return mixed
+     * @return stdClass
      */
     public function fetchRow($query, array $filter = NULL)
     {
@@ -438,7 +400,7 @@ class Typecho_Db
      *
      * @param mixed $query 查询对象
      * @param array $filter 行过滤器函数,将查询的每一行作为第一个参数传入指定的过滤器中
-     * @return mixed
+     * @return array
      */
     public function fetchObject($query, array $filter = NULL)
     {

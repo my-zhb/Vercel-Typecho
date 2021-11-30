@@ -9,6 +9,9 @@
  * @version $Id$
  */
 
+/** 载入api支持 */
+require_once 'Typecho/Common.php';
+
 /**
  * Typecho公用方法
  *
@@ -27,45 +30,45 @@ class Typecho_Response
      */
     private static $_httpCode = array(
         100 => 'Continue',
-        101 => 'Switching Protocols',
-        200 => 'OK',
-        201 => 'Created',
-        202 => 'Accepted',
-        203 => 'Non-Authoritative Information',
-        204 => 'No Content',
-        205 => 'Reset Content',
-        206 => 'Partial Content',
-        300 => 'Multiple Choices',
-        301 => 'Moved Permanently',
-        302 => 'Found',
-        303 => 'See Other',
-        304 => 'Not Modified',
-        305 => 'Use Proxy',
-        307 => 'Temporary Redirect',
-        400 => 'Bad Request',
-        401 => 'Unauthorized',
-        402 => 'Payment Required',
-        403 => 'Forbidden',
-        404 => 'Not Found',
-        405 => 'Method Not Allowed',
-        406 => 'Not Acceptable',
-        407 => 'Proxy Authentication Required',
-        408 => 'Request Timeout',
-        409 => 'Conflict',
-        410 => 'Gone',
-        411 => 'Length Required',
-        412 => 'Precondition Failed',
-        413 => 'Request Entity Too Large',
-        414 => 'Request-URI Too Long',
-        415 => 'Unsupported Media Type',
-        416 => 'Requested Range Not Satisfiable',
-        417 => 'Expectation Failed',
-        500 => 'Internal Server Error',
-        501 => 'Not Implemented',
-        502 => 'Bad Gateway',
-        503 => 'Service Unavailable',
-        504 => 'Gateway Timeout',
-        505 => 'HTTP Version Not Supported'
+        101	=> 'Switching Protocols',
+        200	=> 'OK',
+        201	=> 'Created',
+        202	=> 'Accepted',
+        203	=> 'Non-Authoritative Information',
+        204	=> 'No Content',
+        205	=> 'Reset Content',
+        206	=> 'Partial Content',
+        300	=> 'Multiple Choices',
+        301	=> 'Moved Permanently',
+        302	=> 'Found',
+        303	=> 'See Other',
+        304	=> 'Not Modified',
+        305	=> 'Use Proxy',
+        307	=> 'Temporary Redirect',
+        400	=> 'Bad Request',
+        401	=> 'Unauthorized',
+        402	=> 'Payment Required',
+        403	=> 'Forbidden',
+        404	=> 'Not Found',
+        405	=> 'Method Not Allowed',
+        406	=> 'Not Acceptable',
+        407	=> 'Proxy Authentication Required',
+        408	=> 'Request Timeout',
+        409	=> 'Conflict',
+        410	=> 'Gone',
+        411	=> 'Length Required',
+        412	=> 'Precondition Failed',
+        413	=> 'Request Entity Too Large',
+        414	=> 'Request-URI Too Long',
+        415	=> 'Unsupported Media Type',
+        416	=> 'Requested Range Not Satisfiable',
+        417	=> 'Expectation Failed',
+        500	=> 'Internal Server Error',
+        501	=> 'Not Implemented',
+        502	=> 'Bad Gateway',
+        503	=> 'Service Unavailable',
+        504	=> 'Gateway Timeout',
+        505	=> 'HTTP Version Not Supported'
     );
 
     /**
@@ -86,13 +89,6 @@ class Typecho_Response
      * @var Typecho_Response
      */
     private static $_instance = null;
-
-    /**
-     * 结束前回调函数
-     *
-     * @var array
-     */
-    private static $_callbacks = array();
 
     /**
      * 获取单例句柄
@@ -134,33 +130,6 @@ class Typecho_Response
     }
 
     /**
-     * 结束前的统一回调函数
-     */
-    public static function callback()
-    {
-        static $called;
-
-        if ($called) {
-            return;
-        }
-
-        $called = true;
-        foreach (self::$_callbacks as $callback) {
-            call_user_func($callback);
-        }
-    }
-
-    /**
-     * 新增回调
-     *
-     * @param $callback
-     */
-    public static function addCallback($callback)
-    {
-        self::$_callbacks[] = $callback;
-    }
-
-    /**
      * 设置默认回执编码
      *
      * @access public
@@ -176,7 +145,7 @@ class Typecho_Response
      * 获取字符集
      *
      * @access public
-     * @return string
+     * @return void
      */
     public function getCharset()
     {
@@ -245,7 +214,6 @@ class Typecho_Response
         '</response>';
 
         /** 终止后续输出 */
-        self::callback();
         exit;
     }
 
@@ -253,7 +221,7 @@ class Typecho_Response
      * 抛出json回执信息
      *
      * @access public
-     * @param mixed $message 消息体
+     * @param string $message 消息体
      * @return void
      */
     public function throwJson($message)
@@ -261,10 +229,9 @@ class Typecho_Response
         /** 设置http头信息 */
         $this->setContentType('application/json');
 
-        echo Json::encode($message);
+        echo json_encode($message);
 
         /** 终止后续输出 */
-        self::callback();
         exit;
     }
 
@@ -279,14 +246,13 @@ class Typecho_Response
     public function redirect($location, $isPermanently = false)
     {
         /** Typecho_Common */
+        require_once 'Typecho/Common.php';
         $location = Typecho_Common::safeUrl($location);
 
         if ($isPermanently) {
-            self::callback();
             header('Location: ' . $location, false, 301);
             exit;
         } else {
-            self::callback();
             header('Location: ' . $location, false, 302);
             exit;
         }
@@ -296,8 +262,9 @@ class Typecho_Response
      * 返回来路
      *
      * @access public
-     * @param string $suffix 附加地址
+     * @param string $anchor 附加地址
      * @param string $default 默认来路
+     * @return void
      */
     public function goBack($suffix = NULL, $default = NULL)
     {
@@ -333,8 +300,5 @@ class Typecho_Response
         } else if (!empty($default)) {
             $this->redirect($default);
         }
-
-        self::callback();
-        exit;
     }
 }

@@ -1,5 +1,4 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * Typecho Blog Platform
  *
@@ -7,6 +6,9 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
  * @license    GNU General Public License 2.0
  * @version    $Id: Mysql.php 89 2008-03-31 00:10:57Z magike.net $
  */
+
+/** 数据库适配器接口 */
+require_once 'Typecho/Db/Adapter/Pdo.php';
 
 /**
  * 数据库Pdo_Mysql适配器
@@ -24,19 +26,6 @@ class Typecho_Db_Adapter_Pdo_Mysql extends Typecho_Db_Adapter_Pdo
     public static function isAvailable()
     {
         return parent::isAvailable() && in_array('mysql', PDO::getAvailableDrivers());
-    }
-
-    /**
-     * 清空数据表
-     *
-     * @param string $table
-     * @param mixed $handle 连接对象
-     * @return mixed|void
-     * @throws Typecho_Db_Exception
-     */
-    public function truncate($table, $handle)
-    {
-        $this->query('TRUNCATE TABLE ' . $this->quoteColumn($table), $handle);
     }
 
     /**
@@ -98,6 +87,6 @@ class Typecho_Db_Adapter_Pdo_Mysql extends Typecho_Db_Adapter_Pdo
         $sql['offset'] = (0 == strlen($sql['offset'])) ? NULL : ' OFFSET ' . $sql['offset'];
 
         return 'SELECT ' . $sql['fields'] . ' FROM ' . $sql['table'] .
-        $sql['where'] . $sql['group'] . $sql['having'] . $sql['order'] . $sql['limit'] . $sql['offset'];
+        $sql['where'] . $sql['group'] . $sql['order'] . $sql['limit'] . $sql['offset'];
     }
 }

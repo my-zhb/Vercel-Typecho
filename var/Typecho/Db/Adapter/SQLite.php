@@ -1,5 +1,4 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * Typecho Blog Platform
  *
@@ -7,6 +6,9 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
  * @license    GNU General Public License 2.0
  * @version    $Id: Mysql.php 103 2008-04-09 16:22:43Z magike.net $
  */
+
+/** 数据库适配器接口 */
+require_once 'Typecho/Db/Adapter.php';
 
 /**
  * 数据库SQLite适配器
@@ -35,6 +37,40 @@ class Typecho_Db_Adapter_SQLite implements Typecho_Db_Adapter
     }
 
     /**
+     * 过滤字段名
+     *
+     * @access private
+     * @param mixed $result
+     * @return array
+     */
+    private function filterColumnName($result)
+    {
+        /** 如果结果为空,直接返回 */
+        if (!$result) {
+            return $result;
+        }
+
+        $tResult = array();
+
+        /** 遍历数组 */
+        foreach ($result as $key => $val) {
+            /** 按点分隔 */
+            if (false !== ($pos = strpos($key, '.'))) {
+                $key = substr($key, $pos + 1);
+            }
+
+            /** 按引号分割 */
+            if (false === ($pos = strpos($key, '"'))) {
+                $tResult[$key] = $val;
+            } else {
+                $tResult[substr($key, $pos + 1, -1)] = $val;
+            }
+        }
+
+        return $tResult;
+    }
+
+    /**
      * 数据库连接函数
      *
      * @param Typecho_Config $config 数据库配置
@@ -48,51 +84,27 @@ class Typecho_Db_Adapter_SQLite implements Typecho_Db_Adapter
         }
 
         /** 数据库异常 */
+        require_once 'Typecho/Db/Adapter/Exception.php';
         throw new Typecho_Db_Adapter_Exception($error);
-    }
-
-    /**
-     * 获取数据库版本 
-     * 
-     * @param mixed $handle
-     * @return string
-     */
-    public function getVersion($handle)
-    {
-        return 'sqlite:sqlite ' . sqlite_libversion();
-    }
-
-    /**
-     * 清空数据表
-     *
-     * @param string $table
-     * @param mixed $handle 连接对象
-     * @return mixed|void
-     * @throws Typecho_Db_Exception
-     */
-    public function truncate($table, $handle)
-    {
-        $this->query('DELETE FROM ' . $this->quoteColumn($table), $handle);
     }
 
     /**
      * 执行数据库查询
      *
-     * @param string $query
-     * @param mixed $handle
-     * @param int $op
-     * @param null $action
-     * @param string $table 数据表
-     * @return resource|SQLiteResult
-     * @throws Typecho_Db_Query_Exception
+     * @param string $sql 查询字符串
+     * @param mixed $handle 连接对象
+     * @param boolean $op 查询读写开关
+     * @throws Typecho_Db_Exception
+     * @return resource
      */
-    public function query($query, $handle, $op = Typecho_Db::READ, $action = NULL, $table = NULL)
+    public function query($query, $handle, $op = Typecho_Db::READ, $action = NULL)
     {
-        if ($resource = @sqlite_query($query, $handle)) {
+        if ($resource = @sqlite_query($query instanceof Typecho_Db_Query ? $query->__toString() : $query, $handle)) {
             return $resource;
         }
 
         /** 数据库异常 */
+        require_once 'Typecho/Db/Query/Exception.php';
         $errorCode = sqlite_last_error($this->_dbHandle);
         throw new Typecho_Db_Query_Exception(sqlite_error_string($errorCode), $errorCode);
     }
@@ -105,7 +117,7 @@ class Typecho_Db_Adapter_SQLite implements Typecho_Db_Adapter
      */
     public function fetch($resource)
     {
-        return Typecho_Common::filterSQLite2ColumnName(sqlite_fetch_array($resource, SQLITE_ASSOC));
+        return $this->filterColumnName(sqlite_fetch_array($resource, SQLITE_ASSOC));
     }
 
     /**
@@ -116,7 +128,7 @@ class Typecho_Db_Adapter_SQLite implements Typecho_Db_Adapter
      */
     public function fetchObject($resource)
     {
-        return (object) $this->fetch($resource);
+        return (object) $this->filterColumnName(sqlite_fetch_array($resource, SQLITE_ASSOC));
     }
 
     /**
@@ -161,8 +173,8 @@ class Typecho_Db_Adapter_SQLite implements Typecho_Db_Adapter
         $sql['limit'] = (0 == strlen($sql['limit'])) ? NULL : ' LIMIT ' . $sql['limit'];
         $sql['offset'] = (0 == strlen($sql['offset'])) ? NULL : ' OFFSET ' . $sql['offset'];
 
-        return Typecho_Common::filterSQLite2CountQuery('SELECT ' . $sql['fields'] . ' FROM ' . $sql['table'] .
-        $sql['where'] . $sql['group'] . $sql['having'] . $sql['order'] . $sql['limit'] . $sql['offset']);
+        return 'SELECT ' . $sql['fields'] . ' FROM ' . $sql['table'] .
+        $sql['where'] . $sql['group'] . $sql['order'] . $sql['limit'] . $sql['offset'];
     }
 
     /**

@@ -1,5 +1,4 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * 编辑用户
  *
@@ -78,7 +77,7 @@ class Widget_Users_Edit extends Widget_Abstract_Users implements Widget_Interfac
         ->from('table.users')
         ->where('uid = ?', $uid)->limit(1));
 
-        return !empty($user);
+        return $user ? true : false;
     }
 
     /**
@@ -91,27 +90,27 @@ class Widget_Users_Edit extends Widget_Abstract_Users implements Widget_Interfac
     public function form($action = NULL)
     {
         /** 构建表格 */
-        $form = new Typecho_Widget_Helper_Form($this->security->getIndex('/action/users-edit'),
+        $form = new Typecho_Widget_Helper_Form(Typecho_Common::url('/action/users-edit', $this->options->index),
         Typecho_Widget_Helper_Form::POST_METHOD);
 
         /** 用户名称 */
-        $name = new Typecho_Widget_Helper_Form_Element_Text('name', NULL, NULL, _t('用户名 *'), _t('此用户名将作为用户登录时所用的名称.')
-            . '<br />' . _t('请不要与系统中现有的用户名重复.'));
+        $name = new Typecho_Widget_Helper_Form_Element_Text('name', NULL, NULL, _t('用户名 *'), _t('此用户名将作为用户登录时所用的名称.<br />
+        请不要与系统中现有的用户名重复.'));
         $form->addInput($name);
 
         /** 电子邮箱地址 */
-        $mail = new Typecho_Widget_Helper_Form_Element_Text('mail', NULL, NULL, _t('电子邮箱地址 *'), _t('电子邮箱地址将作为此用户的主要联系方式.')
-            . '<br />' . _t('请不要与系统中现有的电子邮箱地址重复.'));
+        $mail = new Typecho_Widget_Helper_Form_Element_Text('mail', NULL, NULL, _t('电子邮箱地址 *'), _t('电子邮箱地址将作为此用户的主要联系方式.<br />
+        请不要与系统中现有的电子邮箱地址重复.'));
         $form->addInput($mail);
 
         /** 用户昵称 */
-        $screenName = new Typecho_Widget_Helper_Form_Element_Text('screenName', NULL, NULL, _t('用户昵称'), _t('用户昵称可以与用户名不同, 用于前台显示.')
-            . '<br />' . _t('如果你将此项留空, 将默认使用用户名.'));
+        $screenName = new Typecho_Widget_Helper_Form_Element_Text('screenName', NULL, NULL, _t('用户昵称'), _t('用户昵称可以与用户名不同, 用于前台显示.<br />
+        如果你将此项留空, 将默认使用用户名.'));
         $form->addInput($screenName);
 
         /** 用户密码 */
-        $password = new Typecho_Widget_Helper_Form_Element_Password('password', NULL, NULL, _t('用户密码'), _t('为此用户分配一个密码.')
-            . '<br />' . _t('建议使用特殊字符与字母、数字的混编样式,以增加系统安全性.'));
+        $password = new Typecho_Widget_Helper_Form_Element_Password('password', NULL, NULL, _t('用户密码'), _t('为此用户分配一个密码.<br />
+        建议使用特殊字符与字母的混编样式,以增加系统安全性.'));
         $password->input->setAttribute('class', 'w-60');
         $form->addInput($password);
 
@@ -125,10 +124,10 @@ class Widget_Users_Edit extends Widget_Abstract_Users implements Widget_Interfac
         $form->addInput($url);
 
         /** 用户组 */
-        $group =  new Typecho_Widget_Helper_Form_Element_Select('group', array('subscriber' => _t('关注者'),
-                'contributor' => _t('贡献者'), 'editor' => _t('编辑'), 'administrator' => _t('管理员')),
-                NULL, _t('用户组'), _t('不同的用户组拥有不同的权限.')
-            . '<br />' . _t('具体的权限分配表请<a href="http://docs.typecho.org/develop/acl">参考这里</a>.'));
+        $group =  new Typecho_Widget_Helper_Form_Element_Select('group', array('visitor' => _t('访问者'),
+        'subscriber' => _t('关注者'), 'contributor' => _t('贡献者'), 'editor' => _t('编辑'), 'administrator' => _t('管理员')),
+        NULL, _t('用户组'), _t('不同的用户组拥有不同的权限.<br />
+        具体的权限分配表请<a href="http://docs.typecho.org/develop/acl">参考这里</a>.'));
         $form->addInput($group);
 
         /** 用户动作 */
@@ -141,7 +140,7 @@ class Widget_Users_Edit extends Widget_Abstract_Users implements Widget_Interfac
 
         /** 提交按钮 */
         $submit = new Typecho_Widget_Helper_Form_Element_Submit();
-        $submit->input->setAttribute('class', 'btn primary');
+        $submit->input->setAttribute('class', 'primary');
         $form->addItem($submit);
 
         if (NULL != $this->request->uid) {
@@ -167,7 +166,6 @@ class Widget_Users_Edit extends Widget_Abstract_Users implements Widget_Interfac
         /** 给表单增加规则 */
         if ('insert' == $action || 'update' == $action) {
             $screenName->addRule(array($this, 'screenNameExists'), _t('昵称已经存在'));
-            $screenName->addRule('xssCheck', _t('请不要在昵称中使用特殊字符'));
             $url->addRule('url', _t('个人主页地址格式错误'));
             $mail->addRule('required', _t('必须填写电子邮箱'));
             $mail->addRule(array($this, 'mailExists'), _t('电子邮箱地址已经存在'));
@@ -206,13 +204,11 @@ class Widget_Users_Edit extends Widget_Abstract_Users implements Widget_Interfac
             $this->response->goBack();
         }
 
-        $hasher = new PasswordHash(8, true);
-
         /** 取出数据 */
         $user = $this->request->from('name', 'mail', 'screenName', 'password', 'url', 'group');
         $user['screenName'] = empty($user['screenName']) ? $user['name'] : $user['screenName'];
-        $user['password'] = $hasher->HashPassword($user['password']);
-        $user['created'] = $this->options->time;
+        $user['password'] = Typecho_Common::hash($user['password']);
+        $user['created'] = $this->options->gmtTime;
 
         /** 插入数据 */
         $user['uid'] = $this->insert($user);
@@ -245,8 +241,7 @@ class Widget_Users_Edit extends Widget_Abstract_Users implements Widget_Interfac
         if (empty($user['password'])) {
             unset($user['password']);
         } else {
-            $hasher = new PasswordHash(8, true);
-            $user['password'] = $hasher->HashPassword($user['password']);
+            $user['password'] = Typecho_Common::hash($user['password']);
         }
 
         /** 更新数据 */
@@ -271,17 +266,18 @@ class Widget_Users_Edit extends Widget_Abstract_Users implements Widget_Interfac
      */
     public function deleteUser()
     {
-        $users = $this->request->filter('int')->getArray('uid');
-        $masterUserId = $this->db->fetchObject($this->db->select(array('MIN(uid)' => 'num'))->from('table.users'))->num;
+        $users = $this->request->uid;
         $deleteCount = 0;
 
-        foreach ($users as $user) {
-            if ($masterUserId == $user || $user == $this->user->uid) {
-                continue;
-            }
+        if ($users && is_array($users)) {
+            foreach ($users as $user) {
+                if (1 == $user) {
+                    continue;
+                }
 
-            if ($this->delete($this->db->sql()->where('uid = ?', $user))) {
-                $deleteCount ++;
+                if ($this->delete($this->db->sql()->where('uid = ?', $user))) {
+                    $deleteCount ++;
+                }
             }
         }
 
@@ -302,7 +298,6 @@ class Widget_Users_Edit extends Widget_Abstract_Users implements Widget_Interfac
     public function action()
     {
         $this->user->pass('administrator');
-        $this->security->protect();
         $this->on($this->request->is('do=insert'))->insertUser();
         $this->on($this->request->is('do=update'))->updateUser();
         $this->on($this->request->is('do=delete'))->deleteUser();

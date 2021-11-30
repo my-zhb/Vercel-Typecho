@@ -9,47 +9,6 @@
  * @version $Id$
  */
 
-define('__TYPECHO_MB_SUPPORTED__', function_exists('mb_get_info') && function_exists('mb_regex_encoding'));
-
-/**
- * I18n function
- *
- * @param string $string 需要翻译的文字
- * @return string
- */
-function _t($string) {
-    if (func_num_args() <= 1) {
-        return Typecho_I18n::translate($string);
-    } else {
-        $args = func_get_args();
-        array_shift($args);
-        return vsprintf(Typecho_I18n::translate($string), $args);
-    }
-}
-
-/**
- * I18n function, translate and echo
- *
- * @param string $string 需要翻译并输出的文字
- * @return void
- */
-function _e() {
-    $args = func_get_args();
-    echo call_user_func_array('_t', $args);
-}
-
-/**
- * 针对复数形式的翻译函数
- *
- * @param string $single 单数形式的翻译
- * @param string $plural 复数形式的翻译
- * @param integer $number 数字
- * @return string
- */
-function _n($single, $plural, $number) {
-    return str_replace('%d', $number, Typecho_I18n::ngettext($single, $plural, $number));
-}
-
 /**
  * Typecho公用方法
  *
@@ -61,8 +20,32 @@ function _n($single, $plural, $number) {
 class Typecho_Common
 {
     /** 程序版本 */
-    const VERSION = '1.2/18.1.29';
+    const VERSION = '0.9/13.12.12';
 
+    /**
+     * 缓存的包含路径
+     *
+     * @access private
+     * @var array
+     */
+    private static $_cachedIncludePath = false;
+
+    /**
+     * 锁定的代码块
+     *
+     * @access private
+     * @var array
+     */
+    private static $_lockedBlocks = array('<p></p>' => '');
+    
+    /**
+     * 允许的标签
+     * 
+     * @access private
+     * @var array
+     */
+    private static $_allowableTags = '';
+    
     /**
      * 允许的属性
      * 
@@ -88,15 +71,17 @@ class Typecho_Common
     public static $exceptionHandle;
 
     /**
-     * 将字符串变成大写的回调函数
-     * 
-     * @param array $matches 
-     * @access public
+     * 锁定标签回调函数
+     *
+     * @access private
+     * @param array $matches 匹配的值
      * @return string
      */
-    public static function __strToUpper($matches)
+    public static function __lockHTML(array $matches)
     {
-        return strtoupper($matches[0]);
+        $guid = '<code>' . uniqid(time()) . '</code>';
+        self::$_lockedBlocks[$guid] = $matches[0];
+        return $guid;
     }
 
     /**
@@ -134,7 +119,7 @@ class Typecho_Common
      * @param mixed $matches 
      * @static
      * @access public
-     * @return bool
+     * @return void
      */
     public static function __filterAttrs($matches)
     {
@@ -223,16 +208,6 @@ class Typecho_Common
     }
 
     /**
-     * 自动载入类
-     *
-     * @param $className
-     */
-    public static function __autoLoad($className)
-    {
-        @include_once str_replace(array('\\', '_'), '/', $className) . '.php';
-    }
-
-    /**
      * 程序初始化方法
      *
      * @access public
@@ -241,7 +216,15 @@ class Typecho_Common
     public static function init()
     {
         /** 设置自动载入函数 */
-        spl_autoload_register(array('Typecho_Common', '__autoLoad'));
+        function __autoLoad($className)
+        {
+            /**
+             * 自动载入函数并不判断此类的文件是否存在, 我们认为当你显式的调用它时, 你已经确认它存在了
+             * 如果真的无法被加载, 那么系统将出现一个严重错误(Fetal Error)
+             * 如果你需要判断一个类能否被加载, 请使用 Typecho_Common::isAvailableClass 方法
+             */
+            @include_once str_replace('_', '/', $className) . '.php';
+        }
 
         /** 兼容php6 */
         if (function_exists('get_magic_quotes_gpc') && get_magic_quotes_gpc()) {
@@ -262,18 +245,27 @@ class Typecho_Common
      * 异常截获函数
      *
      * @access public
-     * @param $exception 截获的异常
+     * @param Exception $exception 截获的异常
      * @return void
      */
-    public static function exceptionHandle($exception)
+    public static function exceptionHandle(Exception $exception)
     {
-        if (defined('__TYPECHO_DEBUG__')) {
-            echo '<pre><code>';
-            echo '<h1>' . htmlspecialchars($exception->getMessage()) . '</h1>';
-            echo htmlspecialchars($exception->__toString());
-            echo '</code></pre>';
+        //$obHandles = ob_list_handlers();
+
+        @ob_end_clean();
+
+        /*
+        if (in_array('ob_gzhandler', $obHandles)) {
+            ob_start('ob_gzhandler');
         } else {
-            @ob_end_clean();
+            ob_start();
+        }
+        */
+
+        if (defined('__TYPECHO_DEBUG__')) {
+            //@ob_clean();
+            echo nl2br($exception->__toString());
+        } else {
             if (404 == $exception->getCode() && !empty(self::$exceptionHandle)) {
                 $handleClass = self::$exceptionHandle;
                 new $handleClass($exception);
@@ -295,7 +287,6 @@ class Typecho_Common
     public static function error($exception)
     {
         $isException = is_object($exception);
-        $message = '';
 
         if ($isException) {
             $code = $exception->getCode();
@@ -304,6 +295,7 @@ class Typecho_Common
             $code = $exception;
         }
 
+        require_once 'Typecho/Response.php';
         $charset = self::$charset;
 
         if ($isException && $exception instanceof Typecho_Db_Exception) {
@@ -338,6 +330,7 @@ class Typecho_Common
 
         /** 设置http code */
         if (is_numeric($code) && $code > 200) {
+            require_once 'Typecho/Response.php';
             Typecho_Response::setStatus($code);
         }
 
@@ -356,7 +349,7 @@ class Typecho_Common
         <style>
             html {
                 padding: 50px 10px;
-                font-size: 16px;
+                font-size: 20px;
                 line-height: 1.4;
                 color: #666;
                 background: #F6F6F3;
@@ -369,10 +362,15 @@ class Typecho_Common
             body {
                 max-width: 500px;
                 _width: 500px;
-                padding: 30px 20px;
+                padding: 30px 20px 50px;
                 margin: 0 auto;
                 background: #FFF;
             }
+            h1 {
+                font-size: 50px;
+                text-align: center;
+            }
+            h1 span { color: #bbb; }
             ul {
                 padding: 0 0 0 40px;
             }
@@ -385,6 +383,7 @@ class Typecho_Common
     </head>
     <body>
         <div class="container">
+            <h1>{$code}</h1>
             {$message}
         </div>
     </body>
@@ -435,22 +434,6 @@ EOF;
         }
 
         return false;
-    }
-
-    /**
-     * 检测是否在app engine上运行，屏蔽某些功能 
-     * 
-     * @static
-     * @access public
-     * @return boolean
-     */
-    public static function isAppEngine()
-    {
-        return !empty($_SERVER['HTTP_APPNAME'])                     // SAE
-            || !!getenv('HTTP_BAE_ENV_APPID')                       // BAE
-            || !!getenv('HTTP_BAE_LOGID')                           // BAE 3.0
-            || (isset($_SERVER['SERVER_SOFTWARE']) && strpos($_SERVER['SERVER_SOFTWARE'],'Google App Engine') !== false) // GAE
-            ;
     }
 
     /**
@@ -524,7 +507,6 @@ EOF;
      * </code>
      *
      * @access public
-     * @param int $count
      * @return string
      */
     public static function splitByCount($count)
@@ -581,12 +563,6 @@ EOF;
                 if ($attrLength > 0 && "/" == trim($startTags[2][$key][$attrLength - 1])) {
                     continue;
                 }
-
-                // 白名单
-                if (preg_match("/^(area|base|br|col|embed|hr|img|input|keygen|link|meta|param|source|track|wbr)$/i", $tag)) {
-                    continue;
-                }
-
                 if (!empty($closeTags[1]) && $closeTagsIsArray) {
                     if (false !== ($index = array_search($tag, $closeTags[1]))) {
                         unset($closeTags[1][$index]);
@@ -611,12 +587,14 @@ EOF;
      * </code>
      *
      * @access public
-     * @param string $html 需要处理的字符串
+     * @param string $string 需要处理的字符串
      * @param string $allowableTags 需要忽略的html标签
      * @return string
      */
     public static function stripTags($html, $allowableTags = NULL)
     {
+        static $dom;
+
         $normalizeTags = '';
         $allowableAttributes = array();
 
@@ -652,19 +630,20 @@ EOF;
     /**
      * 将url中的非法字符串
      *
-     * @param string $url 需要过滤的url
+     * @access private
+     * @param string $string 需要过滤的url
      * @return string
      */
     public static function safeUrl($url)
     {
         //~ 针对location的xss过滤, 因为其特殊性无法使用removeXSS函数
         //~ fix issue 66
-        $params = parse_url(str_replace(array("\r", "\n", "\t", ' '), '', $url));
+        $params = parse_url(str_replace(array("\r", "\n"), '', $url));
 
         /** 禁止非法的协议跳转 */
         if (isset($params['scheme'])) {
             if (!in_array($params['scheme'], array('http', 'https'))) {
-                return '/';
+                return;
             }
         }
 
@@ -752,26 +731,15 @@ EOF;
      */
     public static function subStr($str, $start, $length, $trim = "...")
     {
-        if (!strlen($str)) {
-            return '';
-        }
-
-        $iLength = self::strLen($str) - $start;
-        $tLength = $length < $iLength ? ($length - self::strLen($trim)) : $length;
-
-        if (__TYPECHO_MB_SUPPORTED__) {
-            $str = mb_substr($str, $start, $tLength, self::$charset);
+        if (function_exists('mb_get_info')) {
+            $iLength = mb_strlen($str, self::$charset);
+            $str = mb_substr($str, $start, $length, self::$charset);
+            return ($length < $iLength - $start) ? $str . $trim : $str;
         } else {
-            if ('UTF-8' == strtoupper(self::$charset)) {
-                if (preg_match_all("/./u", $str, $matches)) {
-                    $str = implode('', array_slice($matches[0], $start, $tLength));
-                }
-            } else {
-                $str = substr($str, $start, $tLength);
-            }
+            preg_match_all("/[\x01-\x7f]|[\xc2-\xdf][\x80-\xbf]|\xe0[\xa0-\xbf][\x80-\xbf]|[\xe1-\xef][\x80-\xbf][\x80-\xbf]|\xf0[\x90-\xbf][\x80-\xbf][\x80-\xbf]|[\xf1-\xf7][\x80-\xbf][\x80-\xbf][\x80-\xbf]/", $str, $info);
+            $str = join("", array_slice($info[0], $start, $length));
+            return ($length < (sizeof($info[0]) - $start)) ? $str . $trim : $str;
         }
-        
-        return $length < $iLength ? ($str . $trim) : $str;
     }
 
     /**
@@ -783,48 +751,11 @@ EOF;
      */
     public static function strLen($str)
     {
-        if (__TYPECHO_MB_SUPPORTED__) {
+        if (function_exists('mb_get_info')) {
             return mb_strlen($str, self::$charset);
         } else {
-            return 'UTF-8' == strtoupper(self::$charset) 
-                ? strlen(utf8_decode($str)) : strlen($str);
-        }
-    }
-
-    /**
-     * 获取大写字符串
-     * 
-     * @param string $str 
-     * @access public
-     * @return string
-     */
-    public static function strToUpper($str)
-    {
-        if (__TYPECHO_MB_SUPPORTED__) {
-            return mb_strtoupper($str, self::$charset);
-        } else {
-            return 'UTF-8' == strtoupper(self::$charset)
-                ? preg_replace_callback("/[a-z]+/u", array('Typecho_Common', '__strToUpper'), $str) : strtoupper($str);
-        }
-    }
-
-    /**
-     * 检查是否为合法的编码数据
-     *
-     * @param string|array $str
-     * @return boolean
-     */
-    public static function checkStrEncoding($str)
-    {
-        if (is_array($str)) {
-            return array_map(array('Typecho_Common', 'checkStrEncoding'), $str);
-        }
-
-        if (__TYPECHO_MB_SUPPORTED__) {
-            return mb_check_encoding($str, self::$charset);
-        } else {
-            // just support utf-8
-            return preg_match('//u', $str);
+            preg_match_all("/[\x01-\x7f]|[\xc2-\xdf][\x80-\xbf]|\xe0[\xa0-\xbf][\x80-\xbf]|[\xe1-\xef][\x80-\xbf][\x80-\xbf]|\xf0[\x90-\xbf][\x80-\xbf][\x80-\xbf]|[\xf1-\xf7][\x80-\xbf][\x80-\xbf][\x80-\xbf]/", $str, $info);
+            return sizeof($info[0]);
         }
     }
 
@@ -845,7 +776,7 @@ EOF;
             return $default;
         }
         
-        if (__TYPECHO_MB_SUPPORTED__) {
+        if (function_exists('mb_regex_encoding')) {
             mb_regex_encoding(self::$charset);
             mb_ereg_search_init($str, "[\w" . preg_quote('_-') . "]+");
             $result = mb_ereg_search();
@@ -861,18 +792,80 @@ EOF;
             }
 
             $str = $return;
-        } else if ('UTF-8' == strtoupper(self::$charset)) {
-            if (preg_match_all("/[\w" . preg_quote('_-') . "]+/u", $str, $matches)) {
-                $str = implode('-', $matches[0]);
-            }
         } else {
             $str = str_replace(array("'", ":", "\\", "/", '"'), "", $str);
             $str = str_replace(array("+", ",", ' ', '，', ' ', ".", "?", "=", "&", "!", "<", ">", "(", ")", "[", "]", "{", "}"), "-", $str);
+            $str = trim($str, '-');
         }
 
-        $str = trim($str, '-_');
         $str = !strlen($str) ? $default : $str;
         return substr($str, 0, $maxLength);
+    }
+
+    /**
+     * 去掉html中的分段
+     *
+     * @access public
+     * @param string $html 输入串
+     * @return string
+     */
+    public static function removeParagraph($html)
+    {
+        /** 锁定标签 */
+        $html = self::lockHTML($html);
+        $html = str_replace(array("\r", "\n"), '', $html);
+    
+        $html = trim(preg_replace(
+        array("/\s*<p>(.*?)<\/p>\s*/is", "/\s*<br\s*\/>\s*/is",
+        "/\s*<(div|blockquote|pre|code|script|table|fieldset|ol|ul|dl|h[1-6])([^>]*)>/is",
+        "/<\/(div|blockquote|pre|code|script|table|fieldset|ol|ul|dl|h[1-6])>\s*/is", "/\s*<\!--more-->\s*/is"),
+        array("\n\\1\n", "\n", "\n\n<\\1\\2>", "</\\1>\n\n", "\n\n<!--more-->\n\n"),
+        $html));
+        
+        return trim(self::releaseHTML($html));
+    }
+    
+    /**
+     * 锁定标签
+     * 
+     * @access public
+     * @param string $html 输入串
+     * @return string
+     */
+    public static function lockHTML($html)
+    {
+        return preg_replace_callback("/<(code|pre|script)[^>]*>.*?<\/\\1>/is", array('Typecho_Common', '__lockHTML'), $html);
+    }
+    
+    /**
+     * 释放标签
+     * 
+     * @access public
+     * @param string $html 输入串
+     * @return string
+     */
+    public static function releaseHTML($html)
+    {
+        $html = trim(str_replace(array_keys(self::$_lockedBlocks), array_values(self::$_lockedBlocks), $html));
+        self::$_lockedBlocks = array('<p></p>' => '');
+        return $html;
+    }
+    
+    /**
+     * 文本分段函数
+     *
+     * @param string $string 需要分段的字符串
+     * @return string
+     */
+    public static function cutParagraph($string)
+    {
+        static $loaded;
+        if (!$loaded) {
+            require_once 'Typecho/Common/Paragraph.php';
+            $loaded = true;
+        }
+        
+        return Typecho_Common_Paragraph::process($string);
     }
 
     /**
@@ -880,7 +873,7 @@ EOF;
      *
      * @access public
      * @param integer $length 字符串长度
-     * @param boolean $specialChars 是否有特殊字符
+     * @param string $specialChars 是否有特殊字符
      * @return string
      */
     public static function randString($length, $specialChars = false)
@@ -943,43 +936,10 @@ EOF;
     {
         if ('$T$' == substr($to, 0, 3)) {
             $salt = substr($to, 3, 9);
-            return self::hash($from, $salt) === $to;
+            return self::hash($from, $salt) == $to;
         } else {
-            return md5($from) === $to;
+            return md5($from) == $to;
         }
-    }
-
-    /**
-     * 创建一个会过期的Token
-     *
-     * @param $secret
-     * @return string
-     */
-    public static function timeToken($secret)
-    {
-        return sha1($secret . '&' . time());
-    }
-
-    /**
-     * 在时间范围内验证token
-     *
-     * @param $token
-     * @param $secret
-     * @param int $timeout
-     * @return bool
-     */
-    public static function timeTokenValidate($token, $secret, $timeout = 5)
-    {
-        $now = time();
-        $from = $now - $timeout;
-
-        for ($i = $now; $i >= $from; $i --) {
-            if (sha1($secret . '&' . $i) == $token) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**
@@ -997,262 +957,6 @@ EOF;
     }
 
     /**
-     * 获取gravatar头像地址 
-     * 
-     * @param string $mail 
-     * @param int $size 
-     * @param string $rating 
-     * @param string $default 
-     * @param bool $isSecure 
-     * @return string
-     */
-    public static function gravatarUrl($mail, $size, $rating, $default, $isSecure = false)
-    {
-        if (defined('__TYPECHO_GRAVATAR_PREFIX__')) {
-            $url = __TYPECHO_GRAVATAR_PREFIX__;
-        } else {
-            $url = $isSecure ? 'https://secure.gravatar.com' : 'http://www.gravatar.com';
-            $url .= '/avatar/';
-        }
-
-        if (!empty($mail)) {
-            $url .= md5(strtolower(trim($mail)));
-        }
-
-        $url .= '?s=' . $size;
-        $url .= '&amp;r=' . $rating;
-        $url .= '&amp;d=' . $default;
-
-        return $url;
-    }
-
-    /**
-     * 给javascript赋值加入扰码设计 
-     * 
-     * @param string $value 
-     * @return string
-     */
-    public static function shuffleScriptVar($value)
-    {
-        $length = strlen($value);
-        $max = 3;
-        $offset = 0;
-        $result = array();
-        $cut = array();
-
-        while ($length > 0) {
-            $len = rand(0, min($max, $length));
-            $rand = "'" . self::randString(rand(1, $max)) . "'";
-
-            if ($len > 0) {
-                $val = "'" . substr($value, $offset, $len) . "'";
-                $result[] = rand(0, 1) ? "//{$rand}\n{$val}" : "{$val}//{$rand}\n";
-            } else {
-                if (rand(0, 1)) {
-                    $result[] = rand(0, 1) ? "''///*{$rand}*/{$rand}\n" : "/* {$rand}//{$rand} */''";
-                } else {
-                    $result[] = rand(0, 1) ? "//{$rand}\n{$rand}" : "{$rand}//{$rand}\n";
-                    $cut[] = array($offset, strlen($rand) - 2 + $offset);
-                }
-            }
-
-            $offset += $len;
-            $length -= $len;
-        }
-
-        $name = '_' . self::randString(rand(3, 7));
-        $cutName = '_' . self::randString(rand(3, 7));
-        $var = implode('+', $result);
-        $cutVar = Json::encode($cut);
-        return "(function () {
-    var {$name} = {$var}, {$cutName} = {$cutVar};
-    
-    for (var i = 0; i < {$cutName}.length; i ++) {
-        {$name} = {$name}.substring(0, {$cutName}[i][0]) + {$name}.substring({$cutName}[i][1]);
-    }
-
-    return {$name};
-})();";
-    }
-
-    /**
-     * 过滤字段名
-     *
-     * @access private
-     * @param mixed $result
-     * @return array
-     */
-    public static function filterSQLite2ColumnName($result)
-    {
-        /** 如果结果为空,直接返回 */
-        if (empty($result)) {
-            return $result;
-        }
-
-        $tResult = array();
-
-        /** 遍历数组 */
-        foreach ($result as $key => $val) {
-            /** 按点分隔 */
-            if (false !== ($pos = strpos($key, '.'))) {
-                $key = substr($key, $pos + 1);
-            }
-
-            $tResult[trim($key, '"')] = $val;
-        }
-
-        return $tResult;
-    }
-
-    /**
-     * 处理sqlite2的distinct count
-     *
-     * @param $sql
-     * @return string
-     */
-    public static function filterSQLite2CountQuery($sql)
-    {
-        if (preg_match("/SELECT\s+COUNT\(DISTINCT\s+([^\)]+)\)\s+(AS\s+[^\s]+)?\s*FROM\s+(.+)/is", $sql, $matches)) {
-            return 'SELECT COUNT(' . $matches[1] . ') ' . $matches[2] . ' FROM SELECT DISTINCT '
-                . $matches[1] . ' FROM ' . $matches[3];
-        }
-
-        return $sql;
-    }
-
-    /**
-     * 创建备份文件缓冲
-     *
-     * @param $type
-     * @param $header
-     * @param $body
-     * @return string
-     */
-    public static function buildBackupBuffer($type, $header, $body)
-    {
-        $buffer = '';
-
-        $buffer .= pack('vvV', $type, strlen($header), strlen($body));
-        $buffer .= $header . $body;
-        $buffer .= md5($buffer);
-
-        return $buffer;
-    }
-
-    /**
-     * 从备份文件中解压
-     *
-     * @param $fp
-     * @param bool $offset
-     * @param string $version
-     * @return array|bool
-     */
-    public static function extractBackupBuffer($fp, &$offset, $version)
-    {
-        $realMetaLen = $version == 'FILE' ? 6 : 8;
-
-        $meta = fread($fp, $realMetaLen);
-        $offset += $realMetaLen;
-        $metaLen = strlen($meta);
-
-        if (false === $meta || $metaLen != $realMetaLen) {
-            return false;
-        }
-
-        list ($type, $headerLen, $bodyLen) = array_values(unpack($version == 'FILE' ? 'v3' : 'v1type/v1headerLen/V1bodyLen', $meta));
-
-        $header = @fread($fp, $headerLen);
-        $offset += $headerLen;
-
-        if (false === $header || strlen($header) != $headerLen) {
-            return false;
-        }
-
-        if ('FILE' == $version) {
-            $bodyLen = array_reduce(json_decode($header, true), function ($carry, $len) {
-                return NULL === $len ? $carry : $carry + $len;
-            }, 0);
-        }
-
-        $body = @fread($fp, $bodyLen);
-        $offset += $bodyLen;
-
-        if (false === $body || strlen($body) != $bodyLen) {
-            return false;
-        }
-
-        $md5 = @fread($fp, 32);
-        $offset += 32;
-
-        if (false === $md5 || $md5 != md5($meta . $header . $body)) {
-            return false;
-        }
-
-        return array($type, $header, $body);
-    }
-
-    /**
-     * 检查是否是一个安全的主机名
-     *
-     * @param $host
-     * @return bool
-     */
-    public static function checkSafeHost($host)
-    {
-        if ('localhost' == $host) {
-            return false;
-        }
-
-        $address = gethostbyname($host);
-        $inet = inet_pton($address);
-
-        if (false === $inet) {
-            // 有可能是ipv6的地址
-            $records = dns_get_record($host, DNS_AAAA);
-
-            if (empty($records)) {
-                return false;
-            }
-
-            $address = $records[0]['ipv6'];
-            $inet = inet_pton($address);
-        }
-
-        if (strpos($address, '.')) {
-            // ipv4
-            // 非公网地址
-            $privateNetworks = array(
-                '10.0.0.0|10.255.255.255',
-                '172.16.0.0|172.31.255.255',
-                '192.168.0.0|192.168.255.255',
-                '169.254.0.0|169.254.255.255',
-                '127.0.0.0|127.255.255.255'
-            );
-
-            $long = ip2long($address);
-
-            foreach ($privateNetworks as $network) {
-                list ($from, $to) = explode('|', $network);
-
-                if ($long >= ip2long($from) && $long <= ip2long($to)) {
-                    return false;
-                }
-            }
-        } else {
-            // ipv6
-            // https://en.wikipedia.org/wiki/Private_network
-            $from = inet_pton('fd00::');
-            $to = inet_pton('fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff');
-
-            if ($inet >= $from && $inet <= $to) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
      * 获取图片
      *
      * @access public
@@ -1267,7 +971,7 @@ EOF;
         }
 
         if (function_exists('finfo_open')) {
-            $fInfo = @finfo_open(FILEINFO_MIME_TYPE);
+            $fInfo = @finfo_open(FILEINFO_MIME);
 
             if (false !== $fInfo) {
                 $mimeType = finfo_file($fInfo, $fileName);

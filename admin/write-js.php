@@ -1,9 +1,9 @@
-<?php if(!defined('__TYPECHO_ADMIN__')) exit; ?>
+<?php if(!defined('__TYPECHO_ROOT_DIR__')) exit; ?>
 <?php Typecho_Plugin::factory('admin/write-js.php')->write(); ?>
 <?php Typecho_Widget::widget('Widget_Metas_Tag_Cloud', 'sort=count&desc=1&limit=200')->to($tags); ?>
 
-<script src="<?php $options->adminStaticUrl('js', 'timepicker.js?v=' . $suffixVersion); ?>"></script>
-<script src="<?php $options->adminStaticUrl('js', 'tokeninput.js?v=' . $suffixVersion); ?>"></script>
+<script src="<?php $options->adminUrl('js/timepicker.js?v=' . $suffixVersion); ?>"></script>
+<script src="<?php $options->adminUrl('js/tokeninput.js?v=' . $suffixVersion); ?>"></script>
 <script>
 $(document).ready(function() {
     // 日期时间控件
@@ -30,7 +30,6 @@ $(document).ready(function() {
         secondText      :   '<?php _e('秒'); ?>',
 
         dateFormat      :   'yy-mm-dd',
-        timezone        :   <?php $options->timezone(); ?> / 60,
         hour            :   (new Date()).getHours(),
         minute          :   (new Date()).getMinutes()
     });
@@ -39,7 +38,7 @@ $(document).ready(function() {
     $('#title').select();
 
     // text 自动拉伸
-    Typecho.editorResize('text', '<?php $security->index('/action/ajax?do=editorResize'); ?>');
+    Typecho.editorResize('text', '<?php $options->index('/action/ajax?do=editorResize'); ?>');
 
     // tag autocomplete 提示
     var tags = $('#tags'), tagsPre = [];
@@ -67,7 +66,7 @@ $(document).ready(function() {
                 'tags'  =>  $tags->name
             );
         }
-        echo Json::encode($data);
+        echo json_encode($data);
         ?>, {
             propertyToSearch:   'tags',
             tokenValue      :   'tags',
@@ -78,7 +77,7 @@ $(document).ready(function() {
             noResultsText   :   '<?php _e('此标签不存在, 按回车创建'); ?>',
             prePopulate     :   tagsPre,
 
-            onResult        :   function (result, query, val) {
+            onResult        :   function (result, query) {
                 if (!query) {
                     return result;
                 }
@@ -89,8 +88,8 @@ $(document).ready(function() {
 
                 if (!result[0] || result[0]['id'] != query) {
                     result.unshift({
-                        id      :   val,
-                        tags    :   val
+                        id      :   query,
+                        tags    :   query
                     });
                 }
 
@@ -110,31 +109,20 @@ $(document).ready(function() {
     var slug = $('#slug');
 
     if (slug.length > 0) {
-        var wrap = $('<div />').css({
-            'position'  :   'relative',
-            'display'   :   'inline-block'
-        }),
-        justifySlug = $('<pre />').css({
-            'display'   :   'block',
-            'visibility':   'hidden',
-            'height'    :   slug.height(),
-            'padding'   :   '0 2px',
-            'margin'    :   0
-        }).insertAfter(slug.wrap(wrap).css({
-            'left'      :   0,
-            'top'       :   0,
-            'minWidth'  :   '5px',
-            'position'  :   'absolute',
-            'width'     :   '100%'
-        })), originalWidth = slug.width();
-
-        function justifySlugWidth() {
-            var val = slug.val();
-            justifySlug.text(val.length > 0 ? val : '     ');
+        var sw = slug.width();
+        if (slug.val().length > 0) {
+            slug.css('width', 'auto').attr('size', slug.val().length);
         }
 
-        slug.bind('input propertychange', justifySlugWidth);
-        justifySlugWidth();
+        slug.bind('input propertychange', function () {
+            var t = $(this), l = t.val().length;
+
+            if (l > 0) {
+                t.css('width', 'auto').attr('size', l);
+            } else {
+                t.css('width', sw).removeAttr('size');
+            }
+        }).width();
     }
 
     // 原始的插入图片和文件
@@ -150,112 +138,46 @@ $(document).ready(function() {
 
     var submitted = false, form = $('form[name=write_post],form[name=write_page]').submit(function () {
         submitted = true;
-    }), formAction = form.attr('action'),
-        idInput = $('input[name=cid]'),
-        cid = idInput.val(),
-        draft = $('input[name=draft]'),
-        draftId = draft.length > 0 ? draft.val() : 0,
-        btnSave = $('#btn-save').removeAttr('name').removeAttr('value'),
-        btnSubmit = $('#btn-submit').removeAttr('name').removeAttr('value'),
-        btnPreview = $('#btn-preview'),
-        doAction = $('<input type="hidden" name="do" value="publish" />').appendTo(form),
-        locked = false,
-        changed = false,
-        autoSave = $('<span id="auto-save-message" class="left"></span>').prependTo('.submit'),
-        lastSaveTime = null;
-
-    $(':input', form).bind('input change', function (e) {
-        var tagName = $(this).prop('tagName');
-
-        if (tagName.match(/(input|textarea)/i) && e.type == 'change') {
-            return;
-        }
-
-        changed = true;
-    });
-
-    form.bind('field', function () {
-        changed = true;
-    });
-
-    // 发送保存请求
-    function saveData(cb) {
-        function callback(o) {
-            lastSaveTime = o.time;
-            cid = o.cid;
-            draftId = o.draftId;
-            idInput.val(cid);
-            autoSave.text('<?php _e('已保存'); ?>' + ' (' + o.time + ')').effect('highlight', 1000);
-            locked = false;
-
-            btnSave.removeAttr('disabled');
-            btnPreview.removeAttr('disabled');
-
-            if (!!cb) {
-                cb(o)
-            }
-        }
-
-        changed = false;
-        btnSave.attr('disabled', 'disabled');
-        btnPreview.attr('disabled', 'disabled');
-        autoSave.text('<?php _e('正在保存'); ?>');
-
-        if (typeof FormData !== 'undefined') {
-            var data = new FormData(form.get(0));
-            data.append('do', 'save');
-
-            $.ajax({
-                url: formAction,
-                processData: false,
-                contentType: false,
-                type: 'POST',
-                data: data,
-                success: callback
-            });
-        } else {
-            var data = form.serialize() + '&do=save';
-            $.post(formAction, data, callback, 'json');
-        }
-    }
-
-    // 计算夏令时偏移
-    var dstOffset = (function () {
-        var d = new Date(),
-            jan = new Date(d.getFullYear(), 0, 1),
-            jul = new Date(d.getFullYear(), 6, 1),
-            stdOffset = Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
-
-        return stdOffset - d.getTimezoneOffset();
-    })();
-    
-    if (dstOffset > 0) {
-        $('<input name="dst" type="hidden" />').appendTo(form).val(dstOffset);
-    }
-
-    // 时区
-    $('<input name="timezone" type="hidden" />').appendTo(form).val(- (new Date).getTimezoneOffset() * 60);
+    }), savedData = null;
 
     // 自动保存
 <?php if ($options->autoSave): ?>
-    var autoSaveOnce = !!cid;
+    var locked = false,
+        formAction = form.attr('action'),
+        idInput = $('input[name=cid]'),
+        cid = idInput.val(),
+        autoSave = $('<span id="auto-save-message" class="left"></span>').prependTo('.submit'),
+        autoSaveOnce = !!cid,
+        lastSaveTime = null;
 
     function autoSaveListener () {
         setInterval(function () {
-            if (changed && !locked) {
+            idInput.val(cid);
+            var data = form.serialize();
+                
+            if (savedData != data && !locked) {
                 locked = true;
-                saveData();
+
+                autoSave.text('<?php _e('正在保存'); ?>');
+                $.post(formAction + '?do=save', data, function (o) {
+                    savedData = data;
+                    lastSaveTime = o.time;
+                    cid = o.cid;
+                    autoSave.text('<?php _e('内容已经保存'); ?>' + ' (' + o.time + ')').effect('highlight', 1000);
+                    locked = false;
+                }, 'json');
             }
         }, 10000);
     }
 
     if (autoSaveOnce) {
+        savedData = form.serialize();
         autoSaveListener();
     }
 
     $('#text').bind('input propertychange', function () {
         if (!locked) {
-            autoSave.text('<?php _e('尚未保存'); ?>' + (lastSaveTime ? ' (<?php _e('上次保存时间'); ?>: ' + lastSaveTime + ')' : ''));
+            autoSave.text('<?php _e('内容尚未保存'); ?>' + (lastSaveTime ? ' (<?php _e('上次保存时间'); ?>: ' + lastSaveTime + ')' : ''));
         }
 
         if (!autoSaveOnce) {
@@ -266,87 +188,27 @@ $(document).ready(function() {
 <?php endif; ?>
 
     // 自动检测离开页
+    var lastData = form.serialize();
+
     $(window).bind('beforeunload', function () {
-        if (changed && !submitted) {
+        if (!!savedData) {
+            lastData = savedData;
+        }
+
+        if (form.serialize() != lastData && !submitted) {
             return '<?php _e('内容已经改变尚未保存, 您确认要离开此页面吗?'); ?>';
         }
     });
 
-    // 预览功能
-    var isFullScreen = false;
-
-    function previewData(cid) {
-        isFullScreen = $(document.body).hasClass('fullscreen');
-        $(document.body).addClass('fullscreen preview');
-
-        var frame = $('<iframe frameborder="0" class="preview-frame preview-loading"></iframe>')
-            .attr('src', './preview.php?cid=' + cid)
-            .attr('sandbox', 'allow-scripts')
-            .appendTo(document.body);
-
-        frame.load(function () {
-            frame.removeClass('preview-loading');
-        });
-
-        frame.height($(window).height() - 53);
-    }
-
-    function cancelPreview() {
-        if (submitted) {
-            return;
-        }
-
-        if (!isFullScreen) {
-            $(document.body).removeClass('fullscreen');
-        }
-
-        $(document.body).removeClass('preview');
-        $('.preview-frame').remove();
-    };
-
-    $('#btn-cancel-preview').click(cancelPreview);
-
-    $(window).bind('message', function (e) {
-        if (e.originalEvent.data == 'cancelPreview') {
-            cancelPreview();
-        }
-    });
-
-    btnPreview.click(function () {
-        if (changed) {
-            locked = true;
-
-            if (confirm('<?php _e('修改后的内容需要保存后才能预览, 是否保存?'); ?>')) {
-                saveData(function (o) {
-                    previewData(o.draftId);
-                });
-            } else {
-                locked = false;
-            }
-        } else if (!!draftId) {
-            previewData(draftId);
-        } else if (!!cid) {
-            previewData(cid);
-        }
-    });
-
-    btnSave.click(function () {
-        doAction.attr('value', 'save');
-    });
-
-    btnSubmit.click(function () {
-        doAction.attr('value', 'publish');
-    });
-
     // 控制选项和附件的切换
     var fileUploadInit = false;
-    $('#edit-secondary .typecho-option-tabs li').click(function() {
-        $('#edit-secondary .typecho-option-tabs li').removeClass('active');
-        $(this).addClass('active');
-        $(this).parents('#edit-secondary').find('.tab-content').addClass('hidden');
+    $("#edit-secondary .typecho-option-tabs li").click(function() {
+        $("#edit-secondary .typecho-option-tabs li").removeClass('active');
+        $(this).addClass("active");
+        $(".tab-content").hide();
         
-        var selected_tab = $(this).find('a').attr('href'),
-            selected_el = $(selected_tab).removeClass('hidden');
+        var selected_tab = $(this).find("a").attr("href"),
+            selected_el = $(selected_tab).show();
 
         if (!fileUploadInit) {
             selected_el.trigger('init');
@@ -365,6 +227,7 @@ $(document).ready(function() {
     // 自动隐藏密码框
     $('#visibility').change(function () {
         var val = $(this).val(), password = $('#post-password');
+        console.log(val);
 
         if ('password' == val) {
             password.removeClass('hidden');

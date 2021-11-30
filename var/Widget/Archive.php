@@ -1,5 +1,4 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * Typecho Blog Platform
  *
@@ -85,7 +84,7 @@ class Widget_Archive extends Widget_Abstract_Contents
      * 聚合器对象
      *
      * @access private
-     * @var Typecho_Feed
+     * @var Typecho_Feed_Writer
      */
     private $_feed;
 
@@ -203,13 +202,15 @@ class Widget_Archive extends Widget_Abstract_Contents
      */
     private $_pageNav;
 
+
     /**
      * 构造函数,初始化组件
      *
-     * @param mixed $request
-     * @param mixed $response
-     * @param mixed $params
-     * @throws Typecho_Widget_Exception
+     * @access public
+     * @param mixed $request request对象
+     * @param mixed $response response对象
+     * @param mixed $params 参数列表
+     * @return void
      */
     public function __construct($request, $response, $params = NULL)
     {
@@ -218,8 +219,7 @@ class Widget_Archive extends Widget_Abstract_Contents
         $this->parameter->setDefault(array(
             'pageSize'          =>  $this->options->pageSize,
             'type'              =>  NULL,
-            'checkPermalink'    =>  true,
-            'preview'           =>  false
+            'checkPermalink'    =>  true
         ));
 
         /** 用于判断是路由调用还是外部调用 */
@@ -235,7 +235,7 @@ class Widget_Archive extends Widget_Abstract_Contents
         }
         
         /** 初始化皮肤路径 */
-        $this->_themeDir = rtrim($this->options->themeFile($this->options->theme), '/') . '/';
+        $this->_themeDir =  __TYPECHO_ROOT_DIR__ . '/' . __TYPECHO_THEME_DIR__ . '/' . $this->options->theme . '/';
 
         /** 处理feed模式 **/
         if ('feed' == $this->parameter->type) {
@@ -293,7 +293,7 @@ class Widget_Archive extends Widget_Abstract_Contents
      * 评论地址
      * 
      * @access protected
-     * @return string
+     * @return void
      */
     protected function ___commentUrl()
     {
@@ -321,7 +321,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @param string $archiveSlug the $_archiveSlug to set
+     * @param $_archiveSlug the $_archiveSlug to set
      */
     public function setArchiveSlug($archiveSlug)
     {
@@ -329,7 +329,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @param string $archiveSingle the $_archiveSingle to set
+     * @param $_archiveSingle the $_archiveSingle to set
      */
     public function setArchiveSingle($archiveSingle)
     {
@@ -337,7 +337,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @param $archiveType the $_archiveType to set
+     * @param $_archiveType the $_archiveType to set
      */
     public function setArchiveType($archiveType)
     {
@@ -345,7 +345,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @param $archiveTitle the $_archiveTitle to set
+     * @param $_archiveTitle the $_archiveTitle to set
      */
     public function setArchiveTitle($archiveTitle)
     {
@@ -365,7 +365,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @param $feedType the $_feedType to set
+     * @param $_feedType the $_feedType to set
      */
     public function setFeedType($feedType)
     {
@@ -373,7 +373,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @param $description the $_description to set
+     * @param $_description the $_description to set
      */
     public function setDescription($description)
     {
@@ -381,7 +381,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @param $keywords the $_keywords to set
+     * @param $_keywords the $_keywords to set
      */
     public function setKeywords($keywords)
     {
@@ -389,7 +389,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @param $feedAtomUrl the $_feedAtomUrl to set
+     * @param $_feedAtomUrl the $_feedAtomUrl to set
      */
     public function setFeedAtomUrl($feedAtomUrl)
     {
@@ -397,7 +397,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @param $feedRssUrl the $_feedRssUrl to set
+     * @param $_feedRssUrl the $_feedRssUrl to set
      */
     public function setFeedRssUrl($feedRssUrl)
     {
@@ -405,7 +405,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @param $feedUrl the $_feedUrl to set
+     * @param $_feedUrl the $_feedUrl to set
      */
     public function setFeedUrl($feedUrl)
     {
@@ -413,7 +413,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @param $feed the $_feed to set
+     * @param $_feed the $_feed to set
      */
     public function setFeed($feed)
     {
@@ -421,7 +421,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @param $countSql the $_countSql to set
+     * @param $_countSql the $_countSql to set
      */
     public function setCountSql($countSql)
     {
@@ -429,7 +429,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @param $total the $_total to set
+     * @param $_total the $_total to set
      */
     public function setTotal($total)
     {
@@ -437,7 +437,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @param $themeFile the $_themeFile to set
+     * @param $_themeFile the $_themeFile to set
      */
     public function setThemeFile($themeFile)
     {
@@ -445,7 +445,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
     
     /**
-     * @param $themeDir the $_themeDir to set
+     * @param $_themeDir the $_themeDir to set
      */
     public function setThemeDir($themeDir)
     {
@@ -462,7 +462,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @return string
+     * @return the $_archiveSlug
      */
     public function getArchiveSlug()
     {
@@ -470,7 +470,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @return string
+     * @return the $_archiveSingle
      */
     public function getArchiveSingle()
     {
@@ -478,7 +478,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @return string
+     * @return the $_archiveType
      */
     public function getArchiveType()
     {
@@ -486,7 +486,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @return string
+     * @return the $_archiveTitle
      */
     public function getArchiveTitle()
     {
@@ -494,7 +494,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @return string
+     * @return the $_feedType
      */
     public function getFeedType()
     {
@@ -502,7 +502,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @return string
+     * @return the $_description
      */
     public function getDescription()
     {
@@ -510,7 +510,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @return string
+     * @return the $_keywords
      */
     public function getKeywords()
     {
@@ -518,7 +518,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @return string
+     * @return the $_feedAtomUrl
      */
     public function getFeedAtomUrl()
     {
@@ -526,7 +526,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @return string
+     * @return the $_feedRssUrl
      */
     public function getFeedRssUrl()
     {
@@ -534,7 +534,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @return string
+     * @return the $_feedUrl
      */
     public function getFeedUrl()
     {
@@ -542,7 +542,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @return Typecho_Feed
+     * @return the $_feed
      */
     public function getFeed()
     {
@@ -550,7 +550,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @return Typecho_Db_Query
+     * @return the $_countSql
      */
     public function getCountSql()
     {
@@ -558,19 +558,15 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * @return int
+     * @return the $_total
      */
     public function getTotal()
     {
-        if (false === $this->_total) {
-            $this->_total = $this->size($this->_countSql);
-        }
-
         return $this->_total;
     }
 
     /**
-     * @return int
+     * @return the $_currentPage
      */
     public function getCurrentPage()
     {
@@ -578,17 +574,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * 获取页数
-     * 
-     * @return integer
-     */
-    public function getTotalPage()
-    {
-        return ceil($this->getTotal() / $this->parameter->pageSize);
-    }
-
-    /**
-     * @return string
+     * @return the $_themeFile
      */
     public function getThemeFile()
     {
@@ -596,7 +582,7 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
     
     /**
-     * @return string
+     * @return the $_themeDir
      */
     public function getThemeDir()
     {
@@ -635,7 +621,7 @@ class Widget_Archive extends Widget_Abstract_Contents
         $src = parse_url($permalink);
         $target = parse_url($requestUrl);
 
-        if ($src['host'] != $target['host'] || urldecode($src['path']) != urldecode($target['path'])) {
+        if ($src['host'] != $target['host'] || $src['path'] != $target['path']) {
             $this->response->redirect($permalink, true);
         }
     }
@@ -688,20 +674,6 @@ class Widget_Archive extends Widget_Abstract_Contents
     }
 
     /**
-     * 默认的非首页归档处理
-     *
-     * @access private
-     * @param Typecho_Db_Query $select 查询对象
-     * @param boolean $hasPushed 是否已经压入队列
-     * @return void
-     * @throws Typecho_Widget_Exception
-     */
-    private function archiveEmptyHandle(Typecho_Db_Query $select, &$hasPushed)
-    {
-        throw new Typecho_Widget_Exception(_t('请求的地址不存在'), 404);
-    }
-
-    /**
      * 404页面处理
      *
      * @access private
@@ -742,7 +714,6 @@ class Widget_Archive extends Widget_Abstract_Contents
      * @param Typecho_Db_Query $select 查询对象
      * @param boolean $hasPushed 是否已经压入队列
      * @return void
-     * @throws Typecho_Widget_Exception
      */
     private function singleHandle(Typecho_Db_Query $select, &$hasPushed)
     {
@@ -765,10 +736,7 @@ class Widget_Archive extends Widget_Abstract_Contents
         $this->_archiveType = 'single';
 
         /** 匹配类型 */
-        
-        if ('single' != $this->parameter->type) {
-            $select->where('table.contents.type = ?', $this->parameter->type);
-        }
+        $select->where('table.contents.type = ?', $this->parameter->type);
 
         /** 如果是单篇文章或独立页面 */
         if (isset($this->request->cid)) {
@@ -776,12 +744,12 @@ class Widget_Archive extends Widget_Abstract_Contents
         }
 
         /** 匹配缩略名 */
-        if (isset($this->request->slug) && !$this->parameter->preview) {
+        if (isset($this->request->slug)) {
             $select->where('table.contents.slug = ?', $this->request->slug);
         }
 
         /** 匹配时间 */
-        if (isset($this->request->year) && !$this->parameter->preview) {
+        if (isset($this->request->year)) {
             $year = $this->request->filter('int')->year;
 
             $fromMonth = 1;
@@ -806,22 +774,19 @@ class Widget_Archive extends Widget_Abstract_Contents
             /** 获取起始GMT时间的unix时间戳 */
             $from = mktime(0, 0, 0, $fromMonth, $fromDay, $year) - $this->options->timezone + $this->options->serverTimezone;
             $to = mktime(23, 59, 59, $toMonth, $toDay, $year) - $this->options->timezone + $this->options->serverTimezone;
-            $select->where('table.contents.created >= ? AND table.contents.created < ?', $from, $to);
+            $select->where('table.contents.created > ? AND table.contents.created < ?', $from, $to);
         }
 
         /** 保存密码至cookie */
-        if ($this->request->isPost() && isset($this->request->protectPassword) && !$this->parameter->preview) {
-            $this->security->protect();
-            Typecho_Cookie::set('protectPassword', $this->request->protectPassword, 0);
+        if ($this->request->isPost() && isset($this->request->protectPassword)) {
+            Typecho_Cookie::set('protectPassword', $this->request->protectPassword, 0, $this->options->siteUrl);
         }
 
         /** 匹配类型 */
         $select->limit(1);
         $this->query($select);
 
-        if (!$this->have() 
-            || (isset($this->request->category) && $this->category != $this->request->category && !$this->parameter->preview)
-            || (isset($this->request->directory) && $this->request->directory != implode('/', $this->directory) && !$this->parameter->preview)) {
+        if (!$this->have() || (isset($this->request->category) && $this->category != $this->request->category)) {
             if (!$this->_invokeFromOutside) {
                 /** 对没有索引情况下的判断 */
                 throw new Typecho_Widget_Exception(_t('请求的地址不存在'), 404);
@@ -861,7 +826,7 @@ class Widget_Archive extends Widget_Abstract_Contents
         }
 
         /** 设置归档类型 */
-        list($this->_archiveType) = explode('_', $this->type);
+        $this->_archiveType = $this->type;
 
         /** 设置归档缩略名 */
         $this->_archiveSlug = ('post' == $this->type || 'attachment' == $this->type) ? $this->cid : $this->slug;
@@ -884,7 +849,6 @@ class Widget_Archive extends Widget_Abstract_Contents
      * @param Typecho_Db_Query $select 查询对象
      * @param boolean $hasPushed 是否已经压入队列
      * @return void
-     * @throws Typecho_Widget_Exception
      */
     private function categoryHandle(Typecho_Db_Query $select, &$hasPushed)
     {
@@ -902,36 +866,21 @@ class Widget_Archive extends Widget_Abstract_Contents
             $categorySelect->where('slug = ?', $this->request->slug);
         }
 
-        if (isset($this->request->directory)) {
-            $directory = explode('/', $this->request->directory);
-            $categorySelect->where('slug = ?', $directory[count($directory) - 1]);
-        }
+        $category = $this->db->fetchRow($categorySelect,
+        array($this->widget('Widget_Abstract_Metas'), 'filter'));
 
-        $category = $this->db->fetchRow($categorySelect);
-        if (empty($category)) {
+        if (!$category) {
             throw new Typecho_Widget_Exception(_t('分类不存在'), 404);
         }
 
-        $categoryListWidget = $this->widget('Widget_Metas_Category_List', 'current=' . $category['mid']);
-        $category = $categoryListWidget->filter($category);
-
-        if (isset($directory) && ($this->request->directory != implode('/', $category['directory']))) {
-            throw new Typecho_Widget_Exception(_t('父级分类不存在'), 404);
-        }
-
-        $children = $categoryListWidget->getAllChildren($category['mid']);
-        $children[] = $category['mid'];
-
         /** fix sql92 by 70 */
         $select->join('table.relationships', 'table.contents.cid = table.relationships.cid')
-        ->where('table.relationships.mid IN ?', $children)
-        ->where('table.contents.type = ?', 'post')
-        ->group('table.contents.cid');
+        ->where('table.relationships.mid = ?', $category['mid'])
+        ->where('table.contents.type = ?', 'post');
 
         /** 设置分页 */
         $this->_pageRow = array_merge($category, array(
-            'slug'          =>  urlencode($category['slug']),
-            'directory'     =>  implode('/', array_map('urlencode', $category['directory']))
+            'slug'  =>  urlencode($category['slug'])
         ));
 
         /** 设置关键词 */
@@ -970,7 +919,6 @@ class Widget_Archive extends Widget_Abstract_Contents
      * @param Typecho_Db_Query $select 查询对象
      * @param boolean $hasPushed 是否已经压入队列
      * @return void
-     * @throws Typecho_Widget_Exception
      */
     private function tagHandle(Typecho_Db_Query $select, &$hasPushed)
     {
@@ -1039,7 +987,6 @@ class Widget_Archive extends Widget_Abstract_Contents
      * @param Typecho_Db_Query $select 查询对象
      * @param boolean $hasPushed 是否已经压入队列
      * @return void
-     * @throws Typecho_Widget_Exception
      */
     private function authorHandle(Typecho_Db_Query $select, &$hasPushed)
     {
@@ -1213,9 +1160,6 @@ class Widget_Archive extends Widget_Abstract_Contents
         /** 设置归档类型 */
         $this->_archiveType = 'search';
 
-        /** 设置归档缩略名 */
-        $this->_archiveSlug = $keywords;
-
         /** 插件接口 */
         $this->pluginHandle()->searchHandle($this, $select);
     }
@@ -1224,11 +1168,11 @@ class Widget_Archive extends Widget_Abstract_Contents
      * 重载select
      *
      * @access public
-     * @return Typecho_Db_Query
+     * @return void
      */
     public function select()
     {
-        if ($this->_invokeByFeed) {
+        if ($this->_feed) {
             // 对feed输出加入限制条件
             return parent::select()->where('table.contents.allowFeed = ?', 1)
             ->where('table.contents.password IS NULL');
@@ -1268,10 +1212,9 @@ class Widget_Archive extends Widget_Abstract_Contents
         $handles = array(
             'index'                     =>  'indexHandle',
             'index_page'                =>  'indexHandle',
-            'archive'                   =>  'archiveEmptyHandle',
-            'archive_page'              =>  'archiveEmptyHandle',
+            'archive'                   =>  'error404Handle',
+            'archive_page'              =>  'error404Handle',
             404                         =>  'error404Handle',
-            'single'                    =>  'singleHandle',
             'page'                      =>  'singleHandle',
             'post'                      =>  'singleHandle',
             'attachment'                =>  'singleHandle',
@@ -1334,28 +1277,24 @@ class Widget_Archive extends Widget_Abstract_Contents
 
         /** 定时发布功能 */
         if (!$selectPlugged) {
-            if ($this->parameter->preview) {
-                $select = $this->select();
-            } else {
-                if ('post' == $this->parameter->type || 'page' == $this->parameter->type) {
-                    if ($this->user->hasLogin()) {
-                        $select = $this->select()->where('table.contents.status = ? OR table.contents.status = ? OR
+            if ('post' == $this->parameter->type || 'page' == $this->parameter->type) {
+                if ($this->user->hasLogin()) {
+                    $select = $this->select()->where('table.contents.status = ? OR table.contents.status = ? OR
                             (table.contents.status = ? AND table.contents.authorId = ?)',
                             'publish', 'hidden', 'private', $this->user->uid);
-                    } else {
-                        $select = $this->select()->where('table.contents.status = ? OR table.contents.status = ?',
-                            'publish', 'hidden');
-                    }
                 } else {
-                    if ($this->user->hasLogin()) {
-                        $select = $this->select()->where('table.contents.status = ? OR
-                            (table.contents.status = ? AND table.contents.authorId = ?)', 'publish', 'private', $this->user->uid);
-                    } else {
-                        $select = $this->select()->where('table.contents.status = ?', 'publish');
-                    }
+                    $select = $this->select()->where('table.contents.status = ? OR table.contents.status = ?',
+                            'publish', 'hidden');
                 }
-                $select->where('table.contents.created < ?', $this->options->time);
+            } else {
+                if ($this->user->hasLogin()) {
+                    $select = $this->select()->where('table.contents.status = ? OR
+                            (table.contents.status = ? AND table.contents.authorId = ?)', 'publish', 'private', $this->user->uid);
+                } else {
+                    $select = $this->select()->where('table.contents.status = ?', 'publish');
+                }
             }
+            $select->where('table.contents.created < ?', $this->options->gmtTime);
         }
 
         /** handle初始化 */
@@ -1366,7 +1305,7 @@ class Widget_Archive extends Widget_Abstract_Contents
         $this->_feedRssUrl = $this->options->feedRssUrl;
         $this->_feedAtomUrl = $this->options->feedAtomUrl;
         $this->_keywords = $this->options->keywords;
-        $this->_description = $this->options->description;
+        $this->_description = $this->options->description; 
 
         if (isset($handles[$this->parameter->type])) {
             $handle = $handles[$this->parameter->type];
@@ -1374,11 +1313,10 @@ class Widget_Archive extends Widget_Abstract_Contents
         } else {
             $hasPushed = $this->pluginHandle()->handle($this->parameter->type, $this, $select);
         }
-
+        
         /** 初始化皮肤函数 */
         $functionsFile = $this->_themeDir . 'functions.php';
-        if ((!$this->_invokeFromOutside || $this->parameter->type == 404 || $this->parameter->preview)
-            && file_exists($functionsFile)) {
+        if (!$this->_invokeFromOutside && file_exists($functionsFile)) {
             require_once $functionsFile;
             if (function_exists('themeInit')) {
                 themeInit($this);
@@ -1418,43 +1356,29 @@ class Widget_Archive extends Widget_Abstract_Contents
      * @param string $next 下一页文字
      * @param int $splitPage 分割范围
      * @param string $splitWord 分割字符
-     * @param string $template 展现配置信息
      * @return void
      */
-    public function pageNav($prev = '&laquo;', $next = '&raquo;', $splitPage = 3, $splitWord = '...', $template = '')
+    public function pageNav($prev = '&laquo;', $next = '&raquo;', $splitPage = 3, $splitWord = '...',
+        $class = 'page-navigator', $currentClass = 'current')
     {
         if ($this->have()) {
             $hasNav = false;
-            $default = array(
-                'wrapTag'       =>  'ol',
-                'wrapClass'     =>  'page-navigator'
-            );
-
-            if (is_string($template)) {
-                parse_str($template, $config);
-            } else {
-                $config = $template;
-            }
-
-            $template = array_merge($default, $config);
-            
-            $total = $this->getTotal();
-            $this->pluginHandle()->trigger($hasNav)->pageNav($this->_currentPage, $total, 
+            $this->_total = (false === $this->_total ? $this->size($this->_countSql) : $this->_total);
+            $this->pluginHandle()->trigger($hasNav)->pageNav($this->_currentPage, $this->_total, 
                 $this->parameter->pageSize, $prev, $next, $splitPage, $splitWord);
 
-            if (!$hasNav && $total > $this->parameter->pageSize) {
+            if (!$hasNav && $this->_total > $this->parameter->pageSize) {
                 $query = Typecho_Router::url($this->parameter->type .
                 (false === strpos($this->parameter->type, '_page') ? '_page' : NULL),
                 $this->_pageRow, $this->options->index);
 
                 /** 使用盒状分页 */
-                $nav = new Typecho_Widget_Helper_PageNavigator_Box($total, 
+                $nav = new Typecho_Widget_Helper_PageNavigator_Box($this->_total, 
                     $this->_currentPage, $this->parameter->pageSize, $query);
                 
-                echo '<' . $template['wrapTag'] . (empty($template['wrapClass']) 
-                    ? '' : ' class="' . $template['wrapClass'] . '"') . '>';
-                $nav->render($prev, $next, $splitPage, $splitWord, $template);
-                echo '</' . $template['wrapTag'] . '>';
+                echo '<ol class="' . $class . '">';
+                $nav->render($prev, $next, $splitPage, $splitWord, $currentClass);
+                echo '</ol>';
             }
         }
     }
@@ -1476,7 +1400,7 @@ class Widget_Archive extends Widget_Abstract_Contents
                 $this->_pageRow, $this->options->index);
 
                 /** 使用盒状分页 */
-                $this->_pageNav = new Typecho_Widget_Helper_PageNavigator_Classic($this->getTotal(),
+                $this->_pageNav = new Typecho_Widget_Helper_PageNavigator_Classic(false === $this->_total ? $this->_total = $this->size($this->_countSql) : $this->_total,
                 $this->_currentPage, $this->parameter->pageSize, $query);
             }
 
@@ -1507,7 +1431,7 @@ class Widget_Archive extends Widget_Abstract_Contents
      * 获取回响归档对象 
      * 
      * @access public
-     * @return Widget_Comments_Ping
+     * @return void
      */
     public function pings()
     {
@@ -1528,11 +1452,7 @@ class Widget_Archive extends Widget_Abstract_Contents
      */
     public function attachments($limit = 0, $offset = 0)
     {
-        return $this->widget('Widget_Contents_Attachment_Related@' . $this->cid . '-' . uniqid(), array(
-            'parentId'  => $this->cid,
-            'limit'     => $limit,
-            'offset'    => $offset
-        ));
+        return $this->widget('Widget_Contents_Attachment_Related', array('parentId' => $this->cid, 'limit' => $limit));
     }
 
     /**
@@ -1541,32 +1461,21 @@ class Widget_Archive extends Widget_Abstract_Contents
      * @access public
      * @param string $format 格式
      * @param string $default 如果没有下一篇,显示的默认文字
-     * @param array $custom 定制化样式
      * @return void
      */
-    public function theNext($format = '%s', $default = NULL, $custom = array())
+    public function theNext($format = '%s', $default = NULL)
     {
         $content = $this->db->fetchRow($this->select()->where('table.contents.created > ? AND table.contents.created < ?',
-            $this->created, $this->options->time)
-            ->where('table.contents.status = ?', 'publish')
-            ->where('table.contents.type = ?', $this->type)
-            ->where('table.contents.password IS NULL')
-            ->order('table.contents.created', Typecho_Db::SORT_ASC)
-            ->limit(1));
+        $this->created, $this->options->gmtTime)
+        ->where('table.contents.status = ?', 'publish')
+        ->where('table.contents.type = ?', $this->type)
+        ->where('table.contents.password IS NULL')
+        ->order('table.contents.created', Typecho_Db::SORT_ASC)
+        ->limit(1));
 
         if ($content) {
             $content = $this->filter($content);
-            $default = array(
-                'title' => NULL,
-                'tagClass' => NULL
-            );
-            $custom = array_merge($default, $custom);
-            extract($custom);
-
-            $linkText = empty($title) ? $content['title'] : $title;
-            $linkClass = empty($tagClass) ? '' : 'class="' . $tagClass . '" ';
-            $link = '<a ' . $linkClass . 'href="' . $content['permalink'] . '" title="' . $content['title'] . '">' . $linkText . '</a>';
-
+            $link = '<a href="' . $content['permalink'] . '" title="' . $content['title'] . '">' . $content['title'] . '</a>';
             printf($format, $link);
         } else {
             echo $default;
@@ -1579,31 +1488,20 @@ class Widget_Archive extends Widget_Abstract_Contents
      * @access public
      * @param string $format 格式
      * @param string $default 如果没有上一篇,显示的默认文字
-     * @param array $custom 定制化样式
      * @return void
      */
-    public function thePrev($format = '%s', $default = NULL, $custom = array())
+    public function thePrev($format = '%s', $default = NULL)
     {
         $content = $this->db->fetchRow($this->select()->where('table.contents.created < ?', $this->created)
-            ->where('table.contents.status = ?', 'publish')
-            ->where('table.contents.type = ?', $this->type)
-            ->where('table.contents.password IS NULL')
-            ->order('table.contents.created', Typecho_Db::SORT_DESC)
-            ->limit(1));
+        ->where('table.contents.status = ?', 'publish')
+        ->where('table.contents.type = ?', $this->type)
+        ->where('table.contents.password IS NULL')
+        ->order('table.contents.created', Typecho_Db::SORT_DESC)
+        ->limit(1));
 
         if ($content) {
             $content = $this->filter($content);
-            $default = array(
-                'title' => NULL,
-                'tagClass' => NULL
-            );
-            $custom = array_merge($default, $custom);
-            extract($custom);
-
-            $linkText = empty($title) ? $content['title'] : $title;
-            $linkClass = empty($tagClass) ? '' : 'class="' . $tagClass . '" ';
-            $link = '<a ' . $linkClass . 'href="' . $content['permalink'] . '" title="' . $content['title'] . '">' . $linkText . '</a>';
-
+            $link = '<a href="' . $content['permalink'] . '" title="' . $content['title'] . '">' . $content['title'] . '</a>';
             printf($format, $link);
         } else {
             echo $default;
@@ -1655,7 +1553,6 @@ class Widget_Archive extends Widget_Abstract_Contents
             'rss2'          =>  $this->_feedUrl,
             'rss1'          =>  $this->_feedRssUrl,
             'commentReply'  =>  1,
-            'antiSpam'      =>  1,
             'atom'          =>  $this->_feedAtomUrl
         );
 
@@ -1668,7 +1565,6 @@ class Widget_Archive extends Widget_Abstract_Contents
         }
 
         $allows = $this->pluginHandle()->headerOptions($allows, $this);
-        $title = (empty($this->_archiveTitle) ? '' : $this->_archiveTitle . ' &raquo; ') . $this->options->title;
 
         $header = '';
         if (!empty($allows['description'])) {
@@ -1687,167 +1583,116 @@ class Widget_Archive extends Widget_Abstract_Contents
             $header .= '<meta name="template" content="' . $allows['template'] . '" />' . "\n";
         }
 
-        if (!empty($allows['pingback']) && 2 == $this->options->allowXmlRpc) {
+        if (!empty($allows['pingback'])) {
             $header .= '<link rel="pingback" href="' . $allows['pingback'] . '" />' . "\n";
         }
 
-        if (!empty($allows['xmlrpc']) && 0 < $this->options->allowXmlRpc) {
+        if (!empty($allows['xmlrpc'])) {
             $header .= '<link rel="EditURI" type="application/rsd+xml" title="RSD" href="' . $allows['xmlrpc'] . '" />' . "\n";
         }
 
-        if (!empty($allows['wlw']) && 0 < $this->options->allowXmlRpc) {
+        if (!empty($allows['wlw'])) {
             $header .= '<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="' . $allows['wlw'] . '" />' . "\n";
         }
 
         if (!empty($allows['rss2']) && $allowFeed) {
-            $header .= '<link rel="alternate" type="application/rss+xml" title="' . $title . ' &raquo; RSS 2.0" href="' . $allows['rss2'] . '" />' . "\n";
+            $header .= '<link rel="alternate" type="application/rss+xml" title="RSS 2.0" href="' . $allows['rss2'] . '" />' . "\n";
         }
 
         if (!empty($allows['rss1']) && $allowFeed) {
-            $header .= '<link rel="alternate" type="application/rdf+xml" title="' . $title . ' &raquo; RSS 1.0" href="' . $allows['rss1'] . '" />' . "\n";
+            $header .= '<link rel="alternate" type="application/rdf+xml" title="RSS 1.0" href="' . $allows['rss1'] . '" />' . "\n";
         }
 
         if (!empty($allows['atom']) && $allowFeed) {
-            $header .= '<link rel="alternate" type="application/atom+xml" title="' . $title . ' &raquo; ATOM 1.0" href="' . $allows['atom'] . '" />' . "\n";
+            $header .= '<link rel="alternate" type="application/atom+xml" title="ATOM 1.0" href="' . $allows['atom'] . '" />' . "\n";
         }
         
         if ($this->options->commentsThreaded && $this->is('single')) {
             if ('' != $allows['commentReply']) {
                 if (1 == $allows['commentReply']) {
                     $header .= "<script type=\"text/javascript\">
-(function () {
-    window.TypechoComment = {
-        dom : function (id) {
-            return document.getElementById(id);
-        },
+//<![CDATA[
+var TypechoComment = {
+    dom : function (id) {
+        return document.getElementById(id);
+    },
     
-        create : function (tag, attr) {
-            var el = document.createElement(tag);
+    create : function (tag, attr) {
+        var el = document.createElement(tag);
         
-            for (var key in attr) {
-                el.setAttribute(key, attr[key]);
-            }
-        
-            return el;
-        },
-
-        reply : function (cid, coid) {
-            var comment = this.dom(cid), parent = comment.parentNode,
-                response = this.dom('" . $this->respondId . "'), input = this.dom('comment-parent'),
-                form = 'form' == response.tagName ? response : response.getElementsByTagName('form')[0],
-                textarea = response.getElementsByTagName('textarea')[0];
-
-            if (null == input) {
-                input = this.create('input', {
-                    'type' : 'hidden',
-                    'name' : 'parent',
-                    'id'   : 'comment-parent'
-                });
-
-                form.appendChild(input);
-            }
-
-            input.setAttribute('value', coid);
-
-            if (null == this.dom('comment-form-place-holder')) {
-                var holder = this.create('div', {
-                    'id' : 'comment-form-place-holder'
-                });
-
-                response.parentNode.insertBefore(holder, response);
-            }
-
-            comment.appendChild(response);
-            this.dom('cancel-comment-reply-link').style.display = '';
-
-            if (null != textarea && 'text' == textarea.name) {
-                textarea.focus();
-            }
-
-            return false;
-        },
-
-        cancelReply : function () {
-            var response = this.dom('{$this->respondId}'),
-            holder = this.dom('comment-form-place-holder'), input = this.dom('comment-parent');
-
-            if (null != input) {
-                input.parentNode.removeChild(input);
-            }
-
-            if (null == holder) {
-                return true;
-            }
-
-            this.dom('cancel-comment-reply-link').style.display = 'none';
-            holder.parentNode.insertBefore(response, holder);
-            return false;
+        for (var key in attr) {
+            el.setAttribute(key, attr[key]);
         }
-    };
-})();
-</script>
-";
+        
+        return el;
+    },
+
+    reply : function (cid, coid) {
+        var comment = this.dom(cid), parent = comment.parentNode,
+            response = this.dom('" . $this->respondId . "'), input = this.dom('comment-parent'),
+            form = 'form' == response.tagName ? response : response.getElementsByTagName('form')[0],
+            textarea = response.getElementsByTagName('textarea')[0];
+
+        if (null == input) {
+            input = this.create('input', {
+                'type' : 'hidden',
+                'name' : 'parent',
+                'id'   : 'comment-parent'
+            });
+
+            form.appendChild(input);
+        }
+        
+        input.setAttribute('value', coid);
+
+        if (null == this.dom('comment-form-place-holder')) {
+            var holder = this.create('div', {
+                'id' : 'comment-form-place-holder'
+            });
+            
+            response.parentNode.insertBefore(holder, response);
+        }
+
+        comment.appendChild(response);
+        this.dom('cancel-comment-reply-link').style.display = '';
+        
+        if (null != textarea && 'text' == textarea.name) {
+            textarea.focus();
+        }
+        
+        return false;
+    },
+
+    cancelReply : function () {
+        var response = this.dom('" . $this->respondId . "'),
+        holder = this.dom('comment-form-place-holder'), input = this.dom('comment-parent');
+
+        if (null != input) {
+            input.parentNode.removeChild(input);
+        }
+
+        if (null == holder) {
+            return true;
+        }
+
+        this.dom('cancel-comment-reply-link').style.display = 'none';
+        holder.parentNode.insertBefore(response, holder);
+        return false;
+    }
+}
+//]]>
+</script>";
                 } else {
                     $header .= '<script src="' . $allows['commentReply'] . '" type="text/javascript"></script>';
                 }
             }
         }
 
-        /** 反垃圾设置 */
-        if ($this->options->commentsAntiSpam && $this->is('single')) {
-            if ('' != $allows['antiSpam']) {
-                if (1 == $allows['antiSpam']) {
-                    $header .= "<script type=\"text/javascript\">
-(function () {
-    var event = document.addEventListener ? {
-        add: 'addEventListener',
-        triggers: ['scroll', 'mousemove', 'keyup', 'touchstart'],
-        load: 'DOMContentLoaded'
-    } : {
-        add: 'attachEvent',
-        triggers: ['onfocus', 'onmousemove', 'onkeyup', 'ontouchstart'],
-        load: 'onload'
-    }, added = false;
-
-    document[event.add](event.load, function () {
-        var r = document.getElementById('{$this->respondId}'),
-            input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = '_';
-        input.value = " . Typecho_Common::shuffleScriptVar(
-            $this->security->getToken($this->request->getRequestUrl())) . "
-
-        if (null != r) {
-            var forms = r.getElementsByTagName('form');
-            if (forms.length > 0) {
-                function append() {
-                    if (!added) {
-                        forms[0].appendChild(input);
-                        added = true;
-                    }
-                }
-            
-                for (var i = 0; i < event.triggers.length; i ++) {
-                    var trigger = event.triggers[i];
-                    document[event.add](trigger, append);
-                    window[event.add](trigger, append);
-                }
-            }
-        }
-    });
-})();
-</script>";
-                } else {
-                    $header .= '<script src="' . $allows['antiSpam'] . '" type="text/javascript"></script>';
-                }
-            }
-        }
+        /** 插件支持 */
+        $this->pluginHandle()->header($header, $this);
 
         /** 输出header */
         echo $header;
-
-        /** 插件支持 */
-        $this->pluginHandle()->header($header, $this);
     }
 
     /**
@@ -1866,14 +1711,14 @@ class Widget_Archive extends Widget_Abstract_Contents
      *
      * @access public
      * @param string $cookieName 已经记忆的cookie名称
-     * @param boolean $return 是否返回
+     * @param string $return 是否返回
      * @return string
      */
     public function remember($cookieName, $return = false)
     {
         $cookieName = strtolower($cookieName);
         if (!in_array($cookieName, array('author', 'mail', 'url'))) {
-            return '';
+            return;
         }
     
         $value = Typecho_Cookie::get('__typecho_remember_' . $cookieName);
@@ -1909,6 +1754,7 @@ class Widget_Archive extends Widget_Abstract_Contents
      * 输出关键字
      *
      * @access public
+     * @return unknown
      */
     public function keywords($split = ',', $default = '')
     {
@@ -1940,7 +1786,7 @@ class Widget_Archive extends Widget_Abstract_Contents
      */
     public function need($fileName)
     {
-        require $this->_themeDir . $fileName;
+        require __TYPECHO_ROOT_DIR__ . '/' . __TYPECHO_THEME_DIR__ . '/' . $this->options->theme . '/' . $fileName;
     }
 
     /**
@@ -1955,9 +1801,7 @@ class Widget_Archive extends Widget_Abstract_Contents
         $this->checkPermalink();
         
         /** 添加Pingback */
-        if (2 == $this->options->allowXmlRpc) {
-            $this->response->setHeader('X-Pingback', $this->options->xmlRpcUrl);
-        }
+        $this->response->setHeader('X-Pingback', $this->options->xmlRpcUrl);
         $validated = false;
 
         //~ 自定义模板
@@ -2114,4 +1958,3 @@ class Widget_Archive extends Widget_Abstract_Contents
         echo $this->_feed->__toString();
     }
 }
-

@@ -1,5 +1,4 @@
 <?php
-if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 /**
  * 风格列表
  *
@@ -22,26 +21,6 @@ if (!defined('__TYPECHO_ROOT_DIR__')) exit;
 class Widget_Themes_List extends Typecho_Widget
 {
     /**
-     * @return array
-     */
-    protected function getThemes()
-    {
-        return glob(__TYPECHO_ROOT_DIR__ . __TYPECHO_THEME_DIR__ . '/*', GLOB_ONLYDIR);
-    }
-
-    /**
-     * get theme
-     *
-     * @param string $theme
-     * @param mixed $index
-     * @return string
-     */
-    protected function getTheme($theme, $index)
-    {
-        return basename($theme);
-    }
-
-    /**
      * 执行函数
      *
      * @access public
@@ -49,10 +28,12 @@ class Widget_Themes_List extends Typecho_Widget
      */
     public function execute()
     {
-        $themes = $this->getThemes();
+        $themes = glob(__TYPECHO_ROOT_DIR__ . __TYPECHO_THEME_DIR__ . '/*');
 
         if ($themes) {
             $options = $this->widget('Widget_Options');
+            $siteUrl = $options->siteUrl;
+            $adminUrl = $options->adminUrl;
             $activated  = 0;
             $result = array();
 
@@ -60,20 +41,18 @@ class Widget_Themes_List extends Typecho_Widget
                 $themeFile = $theme . '/index.php';
                 if (file_exists($themeFile)) {
                     $info = Typecho_Plugin::parseInfo($themeFile);
-                    $info['name'] = $this->getTheme($theme, $key);
+                    $info['name'] = basename($theme);
 
                     if ($info['activated'] = ($options->theme == $info['name'])) {
                         $activated = $key;
                     }
 
-                    $screen = array_filter(glob($theme . '/*'), function ($path) {
-                        return preg_match("/screenshot\.(jpg|png|gif|bmp|jpeg)$/i", $path);
-                    });
-
+                    $screen = glob($theme . '/screen*.{jpg,png,gif,bmp,jpeg,JPG,PNG,GIF,BMG,JPEG}', GLOB_BRACE);
                     if ($screen) {
-                        $info['screen'] = $options->themeUrl(basename(current($screen)), $info['name']);
+                        $info['screen'] = Typecho_Common::url(trim(__TYPECHO_THEME_DIR__, '/') .
+                        '/' . $info['name'] . '/' . basename(current($screen)), $siteUrl);
                     } else {
-                        $info['screen'] = Typecho_Common::url('noscreen.png', $options->adminStaticUrl('img'));
+                        $info['screen'] = Typecho_Common::url('/img/noscreen.png', $adminUrl);
                     }
 
                     $result[$key] = $info;

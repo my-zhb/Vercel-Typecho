@@ -7,6 +7,9 @@
  * @version    $Id: DbQuery.php 97 2008-04-04 04:39:54Z magike.net $
  */
 
+/** Typecho_Config */
+require_once 'Typecho/Config.php';
+
 /**
  * Typecho数据库查询语句构建类
  * 使用方法:
@@ -25,26 +28,6 @@ class Typecho_Db_Query
 {
     /** 数据库关键字 */
     const KEYWORDS = '*PRIMARY|AND|OR|LIKE|BINARY|BY|DISTINCT|AS|IN|IS|NULL';
-
-    /**
-     * 默认字段 
-     * 
-     * @var array
-     * @access private
-     */
-    private static $_default = array(
-        'action' => NULL,
-        'table'  => NULL,
-        'fields' => '*',
-        'join'   => array(),
-        'where'  => NULL,
-        'limit'  => NULL,
-        'offset' => NULL,
-        'order'  => NULL,
-        'group'  => NULL,
-        'having'  => NULL,
-        'rows'   => array(),
-    );
 
     /**
      * 数据库适配器
@@ -69,22 +52,29 @@ class Typecho_Db_Query
     private $_prefix;
 
     /**
-     * @var array
-     */
-    private $_params = array();
-
-    /**
      * 构造函数,引用数据库适配器作为内部数据
      *
      * @param Typecho_Db_Adapter $adapter 数据库适配器
      * @param string $prefix 前缀
+     * @return void
      */
     public function __construct(Typecho_Db_Adapter $adapter, $prefix)
     {
         $this->_adapter = &$adapter;
         $this->_prefix = $prefix;
 
-        $this->_sqlPreBuild = self::$_default;
+        $this->_sqlPreBuild = array(
+            'action' => NULL,
+            'table'  => NULL,
+            'fields' => '*',
+            'join'   => array(),
+            'where'  => NULL,
+            'limit'  => NULL,
+            'offset' => NULL,
+            'order'  => NULL,
+            'group'  => NULL,
+            'rows'   => array(),
+        );
     }
 
     /**
@@ -184,58 +174,6 @@ class Typecho_Db_Query
     }
 
     /**
-     * 转义参数 
-     * 
-     * @param array $values 
-     * @access protected
-     * @return array
-     */
-    protected function quoteValues(array $values)
-    {
-        foreach ($values as &$value) {
-            if (is_array($value)) {
-                $value = '(' . implode(',', array_map(array($this, 'quoteValue'), $value)) . ')';
-            } else {
-                $value = $this->quoteValue($value);
-            }
-        }
-
-        return $values;
-    }
-
-    /**
-     * 延迟转义
-     *
-     * @param $value
-     * @return string
-     */
-    public function quoteValue($value)
-    {
-        $this->_params[] = $value;
-        return '#param:' . (count($this->_params) - 1) . '#';
-    }
-
-    /**
-     * 获取参数
-     *
-     * @return array
-     */
-    public function getParams()
-    {
-        return $this->_params;
-    }
-
-    /**
-     * set default params
-     *
-     * @param array $default
-     */
-    public static function setDefault(array $default)
-    {
-        self::$_default = array_merge(self::$_default, $default);
-    }
-
-    /**
      * 获取查询字串属性值
      *
      * @access public
@@ -245,21 +183,6 @@ class Typecho_Db_Query
     public function getAttribute($attributeName)
     {
         return isset($this->_sqlPreBuild[$attributeName]) ? $this->_sqlPreBuild[$attributeName] : NULL;
-    }
-
-    /**
-     * 清除查询字串属性值
-     *
-     * @access public
-     * @param string $attributeName 属性名称
-     * @return Typecho_Db_Query
-     */
-    public function cleanAttribute($attributeName)
-    {
-        if (isset($this->_sqlPreBuild[$attributeName])) {
-            $this->_sqlPreBuild[$attributeName] = self::$_default[$attributeName];
-        }
-        return $this;
     }
 
     /**
@@ -294,7 +217,7 @@ class Typecho_Db_Query
         } else {
             $args = func_get_args();
             array_shift($args);
-            $this->_sqlPreBuild['where'] .= $operator . ' (' . vsprintf($condition, $this->quoteValues($args)) . ')';
+            $this->_sqlPreBuild['where'] .= $operator . ' (' . vsprintf($condition, array_map(array($this->_adapter, 'quoteValue'), $args)) . ')';
         }
 
         return $this;
@@ -318,7 +241,7 @@ class Typecho_Db_Query
         } else {
             $args = func_get_args();
             array_shift($args);
-            $this->_sqlPreBuild['where'] .= $operator . ' (' . vsprintf($condition, $this->quoteValues($args)) . ')';
+            $this->_sqlPreBuild['where'] .= $operator . ' (' . vsprintf($condition, array_map(array($this->_adapter, 'quoteValue'), $args)) . ')';
         }
 
         return $this;
@@ -383,12 +306,11 @@ class Typecho_Db_Query
      *
      * @param string $key 栏目名称
      * @param mixed $value 指定的值
-     * @param bool $escape 是否转义
      * @return Typecho_Db_Query
      */
-    public function expression($key, $value, $escape = true)
+    public function expression($key, $value)
     {
-        $this->_sqlPreBuild['rows'][$this->filterColumn($key)] = $escape ? $this->filterColumn($value) : $value;
+        $this->_sqlPreBuild['rows'][$this->filterColumn($key)] = $this->filterColumn($value);
         return $this;
     }
 
@@ -414,28 +336,6 @@ class Typecho_Db_Query
     public function group($key)
     {
         $this->_sqlPreBuild['group'] = ' GROUP BY ' . $this->filterColumn($key);
-        return $this;
-    }
-
-    /**
-     * HAVING (HAVING)
-     *
-     * @return Typecho_Db_Query
-     */
-    public function having()
-    {
-        $condition = func_get_arg(0);
-        $condition = str_replace('?', "%s", $this->filterColumn($condition));
-        $operator = empty($this->_sqlPreBuild['having']) ? ' HAVING ' : ' AND';
-
-        if (func_num_args() <= 1) {
-            $this->_sqlPreBuild['having'] .= $operator . ' (' . $condition . ')';
-        } else {
-            $args = func_get_args();
-            array_shift($args);
-            $this->_sqlPreBuild['having'] .= $operator . ' (' . vsprintf($condition, $this->quoteValues($args)) . ')';
-        }
-
         return $this;
     }
 
@@ -504,24 +404,6 @@ class Typecho_Db_Query
         $this->_sqlPreBuild['action'] = Typecho_Db::INSERT;
         $this->_sqlPreBuild['table'] = $this->filterPrefix($table);
         return $this;
-    }
-
-    /**
-     * @param $query
-     * @return string
-     */
-    public function prepare($query)
-    {
-        $params = $this->_params;
-        $adapter = $this->_adapter;
-
-        return preg_replace_callback("/#param:([0-9]+)#/", function ($matches) use ($params, $adapter) {
-            if (array_key_exists($matches[1], $params)) {
-                return $adapter->quoteValue($params[$matches[1]]);
-            } else {
-                return $matches[0];
-            }
-        }, $query);
     }
 
     /**
