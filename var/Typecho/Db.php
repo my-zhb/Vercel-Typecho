@@ -7,12 +7,6 @@
  * @version    $Id: Db.php 107 2008-04-11 07:14:43Z magike.net $
  */
 
-/** 配置管理 */
-require_once 'Typecho/Config.php';
-
-/** sql构建器 */
-require_once 'Typecho/Db/Query.php';
-
 /**
  * 包含获取数据支持方法的类.
  * 必须定义__TYPECHO_DB_HOST__, __TYPECHO_DB_PORT__, __TYPECHO_DB_NAME__,
@@ -115,7 +109,7 @@ class Typecho_Db
      *
      * @param mixed $adapterName 适配器名称
      * @param string $prefix 前缀
-     * @return void
+     * @throws Typecho_Db_Exception
      */
     public function __construct($adapterName, $prefix = 'typecho_')
     {
@@ -123,7 +117,6 @@ class Typecho_Db
         $this->_adapterName = $adapterName;
 
         /** 数据库适配器 */
-        require_once 'Typecho/Db/Adapter/' . str_replace('_', '/', $adapterName) . '.php';
         $adapterName = 'Typecho_Db_Adapter_' . $adapterName;
 
         if (!call_user_func(array($adapterName, 'isAvailable'))) {
@@ -195,7 +188,7 @@ class Typecho_Db
     public function addServer($config, $op)
     {
         $this->_config[] = Typecho_Config::factory($config);
-        $key = key($this->_config);
+        $key = count($this->_config) - 1;
 
         /** 将连接放入池中 */
         switch ($op) {
@@ -233,7 +226,6 @@ class Typecho_Db
     {
         if (empty(self::$_instance)) {
             /** Typecho_Db_Exception */
-            require_once 'Typecho/Db/Exception.php';
             throw new Typecho_Db_Exception('Missing Database Object');
         }
 
@@ -310,19 +302,16 @@ class Typecho_Db
         if (!isset($this->_connectedPool[$op])) {
             if (empty($this->_pool[$op])) {
                 /** Typecho_Db_Exception */
-                require_once 'Typecho/Db/Exception.php';
                 throw new Typecho_Db_Exception('Missing Database Connection');
             }
-
-            $selectConnection = rand(0, count($this->_pool[$op]) - 1);
-            $selectConnectionConfig = $this->_config[$selectConnection];
+            
+            //获取相应读或写服务器连接池中的一个
+            $selectConnection = rand(0, count($this->_pool[$op]) - 1); 
+            //获取随机获得的连接池配置
+            $selectConnectionConfig = $this->_config[$this->_pool[$op][$selectConnection]];
             $selectConnectionHandle = $this->_adapter->connect($selectConnectionConfig);
-            $other = (self::READ == $op) ? self::WRITE : self::READ;
-
-            if (!empty($this->_pool[$other]) && in_array($selectConnection, $this->_pool[$other])) {
-                $this->_connectedPool[$other] = &$selectConnectionHandle;
-            }
             $this->_connectedPool[$op] = &$selectConnectionHandle;
+            
         }
         $handle = $this->_connectedPool[$op];
 

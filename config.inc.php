@@ -7,41 +7,41 @@
  * @version    $Id$
  */
  
-/** å¼€å¯https */ 
+/** ¿ªÆôhttps */ 
 define('__TYPECHO_SECURE__',true);
 
-/** å®šä¹‰æ ¹ç›®å½• */
+/** ¶¨Òå¸ùÄ¿Â¼ */
 define('__TYPECHO_ROOT_DIR__', dirname(__FILE__));
 
-/** å®šä¹‰æ’ä»¶ç›®å½•(ç›¸å¯¹è·¯å¾„) */
+/** ¶¨Òå²å¼þÄ¿Â¼(Ïà¶ÔÂ·¾¶) */
 define('__TYPECHO_PLUGIN_DIR__', '/usr/plugins');
 
-/** å®šä¹‰æ¨¡æ¿ç›®å½•(ç›¸å¯¹è·¯å¾„) */
+/** ¶¨ÒåÄ£°åÄ¿Â¼(Ïà¶ÔÂ·¾¶) */
 define('__TYPECHO_THEME_DIR__', '/usr/themes');
 
-/** åŽå°è·¯å¾„(ç›¸å¯¹è·¯å¾„) */
+/** ºóÌ¨Â·¾¶(Ïà¶ÔÂ·¾¶) */
 define('__TYPECHO_ADMIN_DIR__', '/admin/');
 
-/** è®¾ç½®åŒ…å«è·¯å¾„ */
+/** ÉèÖÃ°üº¬Â·¾¶ */
 @set_include_path(get_include_path() . PATH_SEPARATOR .
 __TYPECHO_ROOT_DIR__ . '/var' . PATH_SEPARATOR .
 __TYPECHO_ROOT_DIR__ . __TYPECHO_PLUGIN_DIR__);
 
-/** è½½å…¥APIæ”¯æŒ */
+/** ÔØÈëAPIÖ§³Ö */
 require_once 'Typecho/Common.php';
 
-/** ç¨‹åºåˆå§‹åŒ– */
+/** ³ÌÐò³õÊ¼»¯ */
 Typecho_Common::init();
 
-/** å®šä¹‰æ•°æ®åº“å‚æ•° */
+/** ¶¨ÒåÊý¾Ý¿â²ÎÊý */
 $db = new Typecho_Db('Pdo_Mysql', 'typecho_');
 $db->addServer(array (
-  'host' => 'æ•°æ®åº“åœ°å€',
-  'user' => 'æ•°æ®åº“ç”¨æˆ·',
-  'password' => 'æ•°æ®åº“å¯†ç ',
+  'host' => 'Êý¾Ý¿âµØÖ·',
+  'user' => 'Êý¾Ý¿âÓÃ»§',
+  'password' => 'Êý¾Ý¿âÃÜÂë',
   'charset' => 'utf8mb4',
   'port' => '3306',
-  'database' => 'æ•°æ®åº“å',
+  'database' => 'Êý¾Ý¿âÃû',
   'engine' => 'MyISAM',
 ), Typecho_Db::READ | Typecho_Db::WRITE);
 Typecho_Db::set($db);
